@@ -18,6 +18,7 @@ namespace DeNES_ClassLibrary
             rom.Load(romPath);
             while(true)
             {
+                Console.WriteLine("---------\nCycle: " + cycle);
                 cpu.instruction(rom.Data);
                 //ppu();
                 //apu();
@@ -28,7 +29,6 @@ namespace DeNES_ClassLibrary
         void tick()
         {
             cycle++;
-            Console.WriteLine("Cycle: "+cycle);
         }
     }
 }
