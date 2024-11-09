@@ -16,7 +16,26 @@ namespace DeNES_ClassLibrary.Components
         }
         public void Load(string path)
         {
-            data = File.ReadAllBytes(path);
+            if(path == "" || path == null)
+            {
+                data = new byte[0];
+                Console.WriteLine("Please provide a rom file!");
+            }
+            else
+            {
+                try
+                {
+                    data = File.ReadAllBytes(path);
+                    Console.WriteLine("Rom loaded succesfully! ");
+                }
+                catch (FileNotFoundException)
+                {
+                    data = new byte[0];
+                    Console.WriteLine("Please provide a valid path!");
+                }
+            }
+            
+            
         }
     }
 }
