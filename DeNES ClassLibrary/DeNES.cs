@@ -7,11 +7,13 @@ namespace DeNES_ClassLibrary
         ROM rom;
         CPU cpu;
         int cycle;
+        int cpu_cycle;
         public DeNES()
         {
             rom = new ROM();
             cpu = new CPU();
             cycle = 0;
+            cpu_cycle = 0;
         }
         public void Run(string romPath)
         {
@@ -19,16 +21,15 @@ namespace DeNES_ClassLibrary
             while(true)
             {
                 Console.WriteLine("---------\nCycle: " + cycle);
-                cpu.instruction(rom.Data);
-                //ppu();
+                cpu_cycle = cpu.instruction(rom.Data);
+                for(int i = 0; i < cpu_cycle; i++)
+                {
+                    //ppu()
+                }
                 //apu();
                 //input();
-                tick();
+                cycle += cpu_cycle;
             }
-        }
-        void tick()
-        {
-            cycle++;
         }
     }
 }
