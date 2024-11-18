@@ -7,7 +7,7 @@ namespace DeNES_Console
         static void Main(string[] args)
         {
             DeNES emulator = new DeNES();
-            emulator.Run("D:/nes roms/Mario Bros. (World).nes");
+            emulator.Run("D:/nes roms/Mario Bros. (World).nes"); //EXAMPLE
         }
     }
 }
