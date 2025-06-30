@@ -32,7 +32,6 @@ namespace DeNES_ClassLibrary.Components
                 Console.WriteLine("Invalid ROM file: Header is too short.");
                 return;
             }
-            Array.Copy(data, data, 16);
             nesHeader = Encoding.ASCII.GetString(data, 0, 4);
             prgRomBanksx16 = data[4];
             chrRomBanksx8 = data[5];

@@ -15,6 +15,7 @@ namespace DeNES_ClassLibrary
         {
             rom = new ROM();
             cpu = new CPU();
+            ppu = new PPU();
             rom.Load(romPath);
             cycle = 0;
         }

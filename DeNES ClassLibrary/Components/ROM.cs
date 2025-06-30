@@ -13,7 +13,6 @@ namespace DeNES_ClassLibrary.Components
         Header header;
         byte[] headerData;
 
-        
         public byte[] Data { get => data; set => data = value; }
         public ROM()
         {
