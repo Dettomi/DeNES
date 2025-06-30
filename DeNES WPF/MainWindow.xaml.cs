@@ -22,6 +22,8 @@ namespace DeNES_WPF
         DeNES deNES;
         DispatcherTimer timer;
         WriteableBitmap bitmap;
+        const int sc_Width = 256;
+        const int sc_Height = 240;
 
         public MainWindow()
         {
@@ -34,15 +36,12 @@ namespace DeNES_WPF
             timer.Tick += nesTick;
 
             //SCREEN:
-            const int Width = 256;
-            const int Height = 256;
-
             bitmap = new WriteableBitmap
             (
-                Width,
-                Height,
+                sc_Width,
+                sc_Height,
                 96,96,
-                PixelFormats.Bgra32,
+                PixelFormats.Bgr32,
                 null
             );
 
@@ -54,6 +53,17 @@ namespace DeNES_WPF
             deNES.Tick();
             
             cycleBox.Text = deNES.Cycle.ToString();
+
+            //Screen:
+            byte[] framebuffer = new byte[sc_Width * sc_Height * 4];
+            for (int i = 0; i < framebuffer.Length; i+=4)
+            {
+                framebuffer[i] = 0; //Blue
+                framebuffer[i + 1] = 0; //Green
+                framebuffer[i+2] = 0; // Red
+                framebuffer[i + 3] = 255; //Alpha (Ignored)
+            }
+            bitmap.WritePixels(new Int32Rect(0, 0, sc_Width, sc_Height), framebuffer, sc_Width * 4, 0);
         }
         private void File_open(object sender, RoutedEventArgs e)
         {
