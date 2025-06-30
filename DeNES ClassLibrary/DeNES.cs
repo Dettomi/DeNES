@@ -8,6 +8,8 @@ namespace DeNES_ClassLibrary
         CPU cpu;
         int cycle;
         int cpu_cycle;
+        public int Cycle { get => cycle; }
+
         public void Load(string romPath)
         {
             rom = new ROM();

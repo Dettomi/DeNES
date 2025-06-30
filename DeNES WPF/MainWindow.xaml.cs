@@ -30,9 +30,15 @@ namespace DeNES_WPF
             //TIMER 60 FPS
             timer = new DispatcherTimer();
             timer.Interval = TimeSpan.FromMicroseconds(16);
-            timer.Tick += (sender, args) => deNES.Tick();
+            timer.Tick += nesTick;
         }
 
+        private void nesTick(object sender, EventArgs e)
+        {
+            deNES.Tick();
+            
+            cycleBox.Text = deNES.Cycle.ToString();
+        }
         private void File_open(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog

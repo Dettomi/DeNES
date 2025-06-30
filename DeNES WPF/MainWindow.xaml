@@ -14,7 +14,9 @@
         </Menu>
         <Grid>
             <Image x:Name="gameWindow" Stretch="Uniform"></Image>
+            <TextBox x:Name="cycleBox" HorizontalAlignment="Right" TextAlignment="Right" VerticalAlignment="Bottom" Background="Transparent" CaretBrush="Transparent" BorderBrush="Transparent" BorderThickness="0" TextWrapping="Wrap" Text="0" Width="100" Height="18"/>
         </Grid>
+        
     </DockPanel>
     
 </Window>
