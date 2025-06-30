@@ -21,16 +21,32 @@ namespace DeNES_WPF
     {
         DeNES deNES;
         DispatcherTimer timer;
+        WriteableBitmap bitmap;
 
         public MainWindow()
         {
             InitializeComponent();
             deNES = new DeNES();
 
-            //TIMER 60 FPS
+            //TIMER 60 FPS:
             timer = new DispatcherTimer();
             timer.Interval = TimeSpan.FromMicroseconds(16);
             timer.Tick += nesTick;
+
+            //SCREEN:
+            const int Width = 256;
+            const int Height = 256;
+
+            bitmap = new WriteableBitmap
+            (
+                Width,
+                Height,
+                96,96,
+                PixelFormats.Bgra32,
+                null
+            );
+
+            gameWindow.Source = bitmap;
         }
 
         private void nesTick(object sender, EventArgs e)
