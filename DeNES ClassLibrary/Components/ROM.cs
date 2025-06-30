@@ -36,7 +36,11 @@ namespace DeNES_ClassLibrary.Components
                 Array.Copy(data, headerData, 16);
                 header = new Header(headerData);
                 header.printHeader();
+
+                //PRG-ROM:
+
                 //CHR-ROM
+
 
                 Console.WriteLine("ROM loaded succesfully! ");
             }
@@ -49,6 +53,18 @@ namespace DeNES_ClassLibrary.Components
                 data = new byte[0]; 
                 Console.WriteLine("An error occurred: " + ex.Message); 
             } 
+        }
+        public byte[] GetPrgRom()
+        {
+            int prg_rom_size = header.prgRomBanksx16 * 16 * 1024;
+            byte[] prg_rom = new byte[prg_rom_size];
+            Array.Copy(data,16,prg_rom,0, prg_rom_size);
+            return prg_rom;
+        }
+        public byte[] GetChrRom()
+        {
+            byte[] chr_rom = new byte[16];
+            return chr_rom;
         }
     }
 }

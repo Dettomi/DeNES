@@ -9,6 +9,7 @@ namespace DeNES_ClassLibrary.Components
 {
     public class CPU
     {
+        byte[] prg_rom;
         int programCounter;
         bool C; //Carry
         bool Z; //Zero
@@ -17,9 +18,10 @@ namespace DeNES_ClassLibrary.Components
         bool V; //Overflow
         bool N; //Negative
 
-        public CPU()
+        public CPU(byte[] prgRom)
         {
-            programCounter = 16;
+            this.prg_rom = prgRom;
+            programCounter = 0;
             C = false;
             Z = false;
             I = false;
@@ -27,12 +29,12 @@ namespace DeNES_ClassLibrary.Components
             V = false;
             N = false;
         }
-        public int instruction(byte[] data)
+        public int instruction()
         {
-            if (programCounter < data.Length)
+            if (programCounter < prg_rom.Length)
             {
                 int cycle = 0;
-                byte opcode = data[programCounter];
+                byte opcode = prg_rom[programCounter];
                 Console.WriteLine("Opcode: " + opcode+"(0x"+opcode.ToString("X2")+")");
                 programCounter++;
 

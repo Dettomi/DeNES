@@ -12,8 +12,8 @@ namespace DeNES_ClassLibrary.Components
         byte[] data;
 
         string nesHeader;
-        byte prgRomBanksx16;
-        byte chrRomBanksx8;
+        public byte prgRomBanksx16;
+        public byte chrRomBanksx8;
         byte fistControlByte;
         byte secondControlByte;
         byte sizeOfPrgRamx8;

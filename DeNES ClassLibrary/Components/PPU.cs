@@ -8,7 +8,7 @@ namespace DeNES_ClassLibrary.Components
 {
     public class PPU
     {
-        public PPU() { }
+        public PPU(byte[] chr_rom) { }
         public void Tick()
         {
 
