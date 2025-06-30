@@ -6,7 +6,15 @@
         xmlns:local="clr-namespace:DeNES_WPF"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
-    <Grid>
-        <Image x:Name="gameWindow"></Image>
-    </Grid>
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="File">
+                <MenuItem Header="Open ROM" Click="MenuItem_Click"></MenuItem>
+            </MenuItem>
+        </Menu>
+        <Grid>
+            <Image x:Name="gameWindow" Stretch="Uniform"></Image>
+        </Grid>
+    </DockPanel>
+    
 </Window>
