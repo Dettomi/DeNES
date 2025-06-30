@@ -11,7 +11,8 @@ namespace DeNES_ClassLibrary.Components
         byte[] data;
 
         Header header;
-         //SHOULD MOVE
+        int prg_rom_size;
+        int chr_rom_size;
 
         public byte[] Data { get => data; set => data = value; }
         public Header Header { get => header; }
@@ -56,15 +57,24 @@ namespace DeNES_ClassLibrary.Components
         }
         public byte[] GetPrgRom()
         {
-            int prg_rom_size = header.prgRomBanksx16 * 16 * 1024;
+            prg_rom_size = header.prgRomBanksx16 * 16 * 1024;
             byte[] prg_rom = new byte[prg_rom_size];
             Array.Copy(data,16,prg_rom,0, prg_rom_size);
             return prg_rom;
         }
         public byte[] GetChrRom()
         {
-            byte[] chr_rom = new byte[16];
-            return chr_rom;
+            chr_rom_size = header.chrRomBanksx8 * 8 * 1024;
+
+            if(chr_rom_size == 0) { 
+                return Array.Empty<byte>(); }
+            
+            byte[] chr_rom = new byte[chr_rom_size];
+            
+            int offset = 16 + prg_rom_size;
+            Array.Copy(data, offset, chr_rom, 0, chr_rom_size);
+            
+            return chr_rom;HR
         }
     }
 }
