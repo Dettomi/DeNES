@@ -6,6 +6,7 @@ namespace DeNES_ClassLibrary
     {
         ROM rom;
         CPU cpu;
+        PPU ppu;
         int cycle;
         int cpu_cycle;
         public int Cycle { get => cycle; }
@@ -23,7 +24,7 @@ namespace DeNES_ClassLibrary
             cpu_cycle = cpu.instruction(rom.Data);
             for(int i = 0; i < cpu_cycle; i++)
             {
-                //ppu()
+                ppu.Tick();
             }
             //apu();
             //input();
