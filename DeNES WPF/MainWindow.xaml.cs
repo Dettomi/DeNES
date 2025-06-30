@@ -41,13 +41,12 @@ namespace DeNES_WPF
                 try
                 {
                     string filePath = dialog.FileName;
-                    deNES.Run(filePath);
+                    deNES.Load(filePath);
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show($"Failed to load ROM:\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
-                
             }
         }
     }
