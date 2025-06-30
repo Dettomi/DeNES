@@ -24,9 +24,6 @@ namespace DeNES_ClassLibrary.Components
         public Header(byte[] data)
         {
             this.data = data;
-        }
-        public void getHeader()
-        {
             if (data.Length < 16)
             {
                 Console.WriteLine("Invalid ROM file: Header is too short.");

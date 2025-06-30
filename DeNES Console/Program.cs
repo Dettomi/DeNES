@@ -8,6 +8,12 @@ namespace DeNES_Console
         {
             DeNES emulator = new DeNES();
             emulator.Load("D:/nes roms/Mario Bros. (World).nes"); //EXAMPLE
+
+            while (true)
+            {
+                emulator.Tick();
+            }
+            
         }
     }
 }

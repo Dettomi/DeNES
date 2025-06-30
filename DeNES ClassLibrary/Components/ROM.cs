@@ -11,13 +11,12 @@ namespace DeNES_ClassLibrary.Components
         byte[] data;
 
         Header header;
-        byte[] headerData;
+         //SHOULD MOVE
 
         public byte[] Data { get => data; set => data = value; }
+        public Header Header { get => header; }
         public ROM()
         {
-            header = new Header(new byte[16]);
-            headerData = new byte[16];
         }
         public void Load(string path)
         {
@@ -32,11 +31,12 @@ namespace DeNES_ClassLibrary.Components
                 //GET ALL DATA
                 data = File.ReadAllBytes(path);
 
-                //GET HEADER DATA
+                //HEADER
+                byte[] headerData = new byte[16];
                 Array.Copy(data, headerData, 16);
-                header.Data = headerData;
-                header.getHeader();
+                header = new Header(headerData);
                 header.printHeader();
+                //CHR-ROM
 
                 Console.WriteLine("ROM loaded succesfully! ");
             }

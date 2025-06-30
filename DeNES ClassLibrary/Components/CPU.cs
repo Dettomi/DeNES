@@ -86,7 +86,7 @@ namespace DeNES_ClassLibrary.Components
                         Console.WriteLine("Unknown opcode: " + opcode + "(0x" + opcode.ToString("X2") + ")");
                         break;
                 }
-                return 1;
+                return cycle;
             }
             else
             {
