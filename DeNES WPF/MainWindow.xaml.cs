@@ -10,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace DeNES_WPF
 {
@@ -19,10 +20,17 @@ namespace DeNES_WPF
     public partial class MainWindow : Window
     {
         DeNES deNES;
+        DispatcherTimer timer;
+
         public MainWindow()
         {
             InitializeComponent();
             deNES = new DeNES();
+
+            //TIMER 60 FPS
+            timer = new DispatcherTimer();
+            timer.Interval = TimeSpan.FromMicroseconds(16);
+            timer.Tick += (sender, args) => deNES.Tick();
         }
 
         private void File_open(object sender, RoutedEventArgs e)
@@ -42,6 +50,7 @@ namespace DeNES_WPF
                 {
                     string filePath = dialog.FileName;
                     deNES.Load(filePath);
+                    timer.Start();
                 }
                 catch (Exception ex)
                 {

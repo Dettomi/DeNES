@@ -15,7 +15,7 @@ namespace DeNES_ClassLibrary
             rom.Load(romPath);
             cycle = 0;
         }
-        public void Tick(string romPath)
+        public void Tick()
         {
             Console.WriteLine("---------\nCycle: " + cycle);
             cpu_cycle = cpu.instruction(rom.Data);
