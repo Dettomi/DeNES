@@ -74,7 +74,7 @@ namespace DeNES_ClassLibrary.Components
             int offset = 16 + prg_rom_size;
             Array.Copy(data, offset, chr_rom, 0, chr_rom_size);
             
-            return chr_rom;HR
+            return chr_rom;
         }
     }
 }

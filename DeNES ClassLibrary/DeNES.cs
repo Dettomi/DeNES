@@ -10,7 +10,7 @@ namespace DeNES_ClassLibrary
         int cycle;
         int cpu_cycle;
         public int Cycle { get => cycle; }
-
+        public byte[] GetFramebuffer { get => ppu.Framebuffer; }
         public void Load(string romPath)
         {
             rom = new ROM();
