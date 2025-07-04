@@ -67,7 +67,7 @@ namespace DeNES_ClassLibrary.Components
             chr_rom_size = header.chrRomBanksx8 * 8 * 1024;
 
             if(chr_rom_size == 0) { 
-                return Array.Empty<byte>(); }
+                return new byte[8*1024]; } // CHR_RAM! CPU WRITES IT
             
             byte[] chr_rom = new byte[chr_rom_size];
             

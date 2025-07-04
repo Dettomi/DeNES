@@ -63,7 +63,8 @@ namespace DeNES_WPF
                 framebuffer[i+2] = 0; // Red
                 framebuffer[i + 3] = 255; //Alpha (Ignored)
             }
-            bitmap.WritePixels(new Int32Rect(0, 0, sc_Width, sc_Height), framebuffer, sc_Width * 4, 0);
+            //bitmap.WritePixels(new Int32Rect(0, 0, sc_Width, sc_Height), framebuffer, sc_Width * 4, 0);
+            bitmap.WritePixels(new Int32Rect(0, 0, sc_Width, sc_Height), deNES.GetFramebuffer, sc_Width * 4, 0);
         }
         private void File_open(object sender, RoutedEventArgs e)
         {

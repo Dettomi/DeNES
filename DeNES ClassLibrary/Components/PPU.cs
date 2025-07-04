@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,7 +18,8 @@ namespace DeNES_ClassLibrary.Components
         public PPU(byte[] chr_rom) 
         { 
             this.patternTable = chr_rom;
-            Framebuffer = new byte[(TileSize*TilesPerRow)*(TileSize * TilesPerRow) *4];
+            //Framebuffer = new byte[(TileSize*TilesPerRow)*(TileSize * TilesPerRow) *4]; //128x128 (16x16 tile 8x8 pixel each) * 4 (RGBA) = 65.536
+            Framebuffer = new byte[256*240 * 4];
         }
         public void Tick()
         {
@@ -25,7 +27,7 @@ namespace DeNES_ClassLibrary.Components
         }
         public void DrawPattern8x8Tile(int position, int px, int py)
         {
-            int tileAddress = position * 16;
+            int tileAddress = position * 16; //1 tile = 16 byte
             for (int row = 0; row < 8; row++)
             {
                 byte first = patternTable[tileAddress + row];
@@ -42,7 +44,7 @@ namespace DeNES_ClassLibrary.Components
 
                     int screenX = px + col;
                     int screenY = py + row;
-                    int offset = (screenY * 128 + screenX) * 4;
+                    int offset = (screenY * 256 + screenX) * 4;
 
                     Framebuffer[offset + 0] = intensity; // B
                     Framebuffer[offset + 1] = intensity; // G
@@ -53,10 +55,16 @@ namespace DeNES_ClassLibrary.Components
         }
         public void DrawPatternTable()
         {
-            for (int tileIndex = 0; tileIndex < 256; tileIndex++) // 16x16 tiles
+            int bankCount = patternTable.Length / 4096;
+            int maxTiles;
+            if(bankCount <= 3){
+                maxTiles = bankCount * 256;
+            }else { maxTiles = 960; }
+            
+            for (int tileIndex = 0; tileIndex < maxTiles; tileIndex++) // 16x16 tiles
             {
-                int tileX = (tileIndex % TilesPerRow) * TileSize;
-                int tileY = (tileIndex / TilesPerRow) * TileSize;
+                int tileX = (tileIndex % 32) * TileSize;
+                int tileY = (tileIndex / 32) * TileSize;
                 DrawPattern8x8Tile(tileIndex, tileX, tileY);
             }
         }
