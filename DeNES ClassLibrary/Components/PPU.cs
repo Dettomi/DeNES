@@ -12,6 +12,8 @@ namespace DeNES_ClassLibrary.Components
         byte[] patternTable;
         public byte[] Framebuffer;
 
+        byte[] nameTable0 = new byte[960];
+
         const int TileSize = 8;
         const int TilesPerRow = 16;
         
@@ -20,10 +22,13 @@ namespace DeNES_ClassLibrary.Components
             this.patternTable = chr_rom;
             //Framebuffer = new byte[(TileSize*TilesPerRow)*(TileSize * TilesPerRow) *4]; //128x128 (16x16 tile 8x8 pixel each) * 4 (RGBA) = 65.536
             Framebuffer = new byte[256*240 * 4];
+
+            PopulateNameTable();
         }
         public void Tick()
         {
-            DrawPatternTable();
+            DrawNameTable();
+            //DrawPatternTable();
         }
         public void DrawPattern8x8Tile(int position, int px, int py)
         {
@@ -66,6 +71,24 @@ namespace DeNES_ClassLibrary.Components
                 int tileX = (tileIndex % 32) * TileSize;
                 int tileY = (tileIndex / 32) * TileSize;
                 DrawPattern8x8Tile(tileIndex, tileX, tileY);
+            }
+        }
+        public void DrawNameTable()
+        {
+            for (int yy = 0; yy < 30; yy++)
+            {
+                for (int xx = 0; xx < 32; xx++)
+                {
+                    int address = nameTable0[(yy*32) + xx];
+                    DrawPattern8x8Tile(address,xx*8,yy*8);
+                }
+            }
+        }
+        private void PopulateNameTable()
+        {
+            for (int i = 0; i < 960; i++)
+            {
+                nameTable0[i] = (byte)(i % 256);
             }
         }
     }
