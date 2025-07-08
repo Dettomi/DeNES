@@ -12,7 +12,8 @@ namespace DeNES_ClassLibrary.Components
         byte[] patternTable;
         public byte[] Framebuffer;
 
-        byte[] nameTable0 = new byte[960];
+        byte[] nameTable0 = new byte[960]; //Should be 4kb
+        byte[] paletteTable = new byte[32];
 
         const int TileSize = 8;
         const int TilesPerRow = 16;
@@ -60,6 +61,7 @@ namespace DeNES_ClassLibrary.Components
         }
         public void DrawPatternTable()
         {
+            //How many to draw
             int bankCount = patternTable.Length / 4096;
             int maxTiles;
             if(bankCount <= 3){
