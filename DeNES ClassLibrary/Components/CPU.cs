@@ -19,6 +19,10 @@ namespace DeNES_ClassLibrary.Components
         bool V; //Overflow
         bool N; //Negative
 
+        byte A;
+        byte X;
+        byte Y;
+
         public CPU(byte[] prgRom)
         {
             this.prg_rom = prgRom;
@@ -43,6 +47,22 @@ namespace DeNES_ClassLibrary.Components
 
                 switch (opcode)
                 {
+                    //ACCESS:
+                    case 0xa9: //LDA Immediate
+                        A = prg_rom[programCounter++];
+                        Z = (A == 0);
+                        N = (A & 0x80) != 0; //7th bit
+                        Console.WriteLine("Executing LDA Immediate: Load A");
+                        cycle = 2;
+                        break;
+                    case 0x8d: //STA Absolute (STORE A)
+                        byte low = prg_rom[programCounter++];
+                        byte high = prg_rom[programCounter++];
+                        ushort address = (ushort)((high << 8) | low); //16 bit
+                        WriteToMemory(address, A);
+                        Console.WriteLine("Executing STA Absolute: Store A");
+                        cycle = 4;
+                        break;
                     //FLAGS:
                     case 0x18: //CLC (Clear Carry)
                         C = false;
@@ -97,6 +117,24 @@ namespace DeNES_ClassLibrary.Components
             {
                 Console.WriteLine("End of ROM Data!");
                 return 0;
+            }
+        }
+        void WriteToMemory(ushort address, byte value)
+        {
+            switch (address)
+            {
+                case 0x2000:
+                    ppu.SETPPUCTRL(value);
+                    break;
+                case 0x2006:
+                    ppu.SETPPUADDR(value);
+                    break;
+                case 0x2007:
+                    ppu.WritePPUDATA(value);
+                    break;
+                default:
+                    Console.WriteLine($"Write to {address} failed");
+                    break;
             }
         }
     }

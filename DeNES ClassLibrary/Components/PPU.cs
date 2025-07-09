@@ -112,20 +112,24 @@ namespace DeNES_ClassLibrary.Components
         }
         public void SETPPUADDR(byte value) //$2006 SETS VRAM ADDRESS 2 WRITE (2x8 bit)
         {
-            if (latch_PPUADDR)
+            if (!latch_PPUADDR) // High byte
             {
                 register_PPUADDR = (ushort)((value & 0x3F) << 8); //Only 14 bit address with nes, first 2 bits not used
-                latch_PPUADDR = false;
+                latch_PPUADDR = true;
             }
-            else
+            else // Low byte
             {
                 register_PPUADDR = (ushort)(register_PPUADDR | value);
-                latch_PPUADDR = true;
+                latch_PPUADDR = false;
             }
         }
         public void WritePPUDATA(byte value) //$2007 WRITES TO PPUADDR
         {
-            nameTable[register_PPUADDR - 0x2000] = value;
+            if (register_PPUADDR >= 0x2000 && register_PPUADDR < 0x3000)
+            {
+                nameTable[register_PPUADDR - 0x2000] = value;
+            }
+            register_PPUADDR += 1;
         }
     }
 }
