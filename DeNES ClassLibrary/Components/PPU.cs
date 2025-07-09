@@ -17,7 +17,18 @@ namespace DeNES_ClassLibrary.Components
 
         const int TileSize = 8;
         const int TilesPerRow = 16;
-        
+
+        //PPU REGISTERS: $2000 - $2007
+        byte register_PPUCTRL;
+        byte register_PPUMASK;
+        byte register_PPUSTATUS;
+        byte register_OAMADDR;
+        byte register_PPUSCROLL_X;
+        byte register_PPUSCROLL_Y;
+        ushort register_PPUADDR;
+        byte register_PPUDATA;
+        byte register_OAMDMA;
+
         public PPU(byte[] chr_rom) 
         { 
             this.patternTable = chr_rom;

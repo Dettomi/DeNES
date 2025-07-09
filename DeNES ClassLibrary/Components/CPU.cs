@@ -9,6 +9,7 @@ namespace DeNES_ClassLibrary.Components
 {
     public class CPU
     {
+        PPU ppu;
         byte[] prg_rom;
         int programCounter;
         bool C; //Carry
@@ -29,6 +30,8 @@ namespace DeNES_ClassLibrary.Components
             V = false;
             N = false;
         }
+        public PPU Ppu { set => ppu = value; }
+
         public int instruction()
         {
             if (programCounter < prg_rom.Length)

@@ -17,6 +17,7 @@ namespace DeNES_ClassLibrary
             rom.Load(romPath);
             cpu = new CPU(rom.GetPrgRom());
             ppu = new PPU(rom.GetChrRom());
+            cpu.Ppu = ppu;
             cycle = 0;
         }
         public void Tick()
