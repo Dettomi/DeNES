@@ -12,20 +12,21 @@ namespace DeNES_ClassLibrary.Components
         byte[] patternTable;
         public byte[] Framebuffer;
 
-        byte[] nameTable0 = new byte[960]; //Should be 4kb
+        byte[] nameTable = new byte[4096]; //Should be 4kb
         byte[] paletteTable = new byte[32];
 
         const int TileSize = 8;
         const int TilesPerRow = 16;
 
         //PPU REGISTERS: $2000 - $2007
-        byte register_PPUCTRL;
+        byte register_PPUCTRL; //$2000
         byte register_PPUMASK;
         byte register_PPUSTATUS;
         byte register_OAMADDR;
         byte register_PPUSCROLL_X;
         byte register_PPUSCROLL_Y;
         ushort register_PPUADDR;
+        bool latch_PPUADDR;
         byte register_PPUDATA;
         byte register_OAMDMA;
 
@@ -35,7 +36,7 @@ namespace DeNES_ClassLibrary.Components
             //Framebuffer = new byte[(TileSize*TilesPerRow)*(TileSize * TilesPerRow) *4]; //128x128 (16x16 tile 8x8 pixel each) * 4 (RGBA) = 65.536
             Framebuffer = new byte[256*240 * 4];
 
-            PopulateNameTable();
+            //PopulateNameTable();
         }
         public void Tick()
         {
@@ -92,7 +93,7 @@ namespace DeNES_ClassLibrary.Components
             {
                 for (int xx = 0; xx < 32; xx++)
                 {
-                    int address = nameTable0[(yy*32) + xx];
+                    int address = nameTable[(yy*32) + xx];
                     DrawPattern8x8Tile(address,xx*8,yy*8);
                 }
             }
@@ -101,8 +102,30 @@ namespace DeNES_ClassLibrary.Components
         {
             for (int i = 0; i < 960; i++)
             {
-                nameTable0[i] = (byte)(i % 256);
+                nameTable[i] = (byte)(i % 256);
             }
+        }
+        //CPU REGISTER METHODS:
+        public void SETPPUCTRL(byte value) //$2000
+        {
+            register_PPUCTRL = value;
+        }
+        public void SETPPUADDR(byte value) //$2006 SETS VRAM ADDRESS 2 WRITE (2x8 bit)
+        {
+            if (latch_PPUADDR)
+            {
+                register_PPUADDR = (ushort)((value & 0x3F) << 8); //Only 14 bit address with nes, first 2 bits not used
+                latch_PPUADDR = false;
+            }
+            else
+            {
+                register_PPUADDR = (ushort)(register_PPUADDR | value);
+                latch_PPUADDR = true;
+            }
+        }
+        public void WritePPUDATA(byte value) //$2007 WRITES TO PPUADDR
+        {
+            nameTable[register_PPUADDR - 0x2000] = value;
         }
     }
 }
