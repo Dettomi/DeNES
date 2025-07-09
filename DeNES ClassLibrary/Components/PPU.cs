@@ -15,6 +15,7 @@ namespace DeNES_ClassLibrary.Components
         byte[] nameTable = new byte[4096]; //Should be 4kb
         byte[] paletteTable = new byte[32];
 
+        int ppu_tick = 0;
         const int TileSize = 8;
         const int TilesPerRow = 16;
 
@@ -40,6 +41,11 @@ namespace DeNES_ClassLibrary.Components
         }
         public void Tick()
         {
+            ppu_tick++;
+            if(ppu_tick % 1000 == 0)
+            {
+                register_PPUSTATUS |= 0x80; //7th bit (VBlank)
+            }
             DrawNameTable();
             //DrawPatternTable();
         }
@@ -109,6 +115,17 @@ namespace DeNES_ClassLibrary.Components
         public void SETPPUCTRL(byte value) //$2000
         {
             register_PPUCTRL = value;
+        }
+        public void SETMASK(byte value) //$2001
+        {
+            register_PPUMASK = value;
+        }
+        public byte READPPUSTATUS()
+        {
+            byte r = register_PPUSTATUS;
+            register_PPUSTATUS &= 0x7F; // Bit 7 clear
+            latch_PPUADDR = false;
+            return r;
         }
         public void SETPPUADDR(byte value) //$2006 SETS VRAM ADDRESS 2 WRITE (2x8 bit)
         {

@@ -22,7 +22,9 @@ namespace DeNES_ClassLibrary
 
             cpu = new CPU(memory);
             ppu = new PPU(rom.GetChrRom());
+
             cpu.Ppu = ppu;
+            memory.Ppu = ppu;
 
             cycle = 0;
         }
