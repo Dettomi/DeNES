@@ -10,7 +10,7 @@ namespace DeNES_ClassLibrary.Components
     public class CPU
     {
         PPU ppu;
-        byte[] prg_rom;
+        Memory memory;
         int programCounter;
         bool C; //Carry
         bool Z; //Zero
@@ -22,11 +22,12 @@ namespace DeNES_ClassLibrary.Components
         byte A;
         byte X;
         byte Y;
-
-        public CPU(byte[] prgRom)
+        byte SP; //Stack pointer
+        public CPU(Memory memo)
         {
-            this.prg_rom = prgRom;
-            programCounter = 0;
+            memory = memo;
+            programCounter = (ushort)(memory.Read(0xFFFC) | (memory.Read(0xFFFD) << 8)); //NES starts at this address
+            SP = 0xFD; //NES default value
             C = false;
             Z = false;
             I = false;
@@ -38,86 +39,98 @@ namespace DeNES_ClassLibrary.Components
 
         public int instruction()
         {
-            if (programCounter < prg_rom.Length)
+            int cycle = 0;
+            byte opcode = memory.Read((ushort)(programCounter++));
+            Console.WriteLine("Opcode: " + opcode+"(0x"+opcode.ToString("X2")+")");
+
+            switch (opcode)
             {
-                int cycle = 0;
-                byte opcode = prg_rom[programCounter];
-                Console.WriteLine("Opcode: " + opcode+"(0x"+opcode.ToString("X2")+")");
-                programCounter++;
+                //ACCESS:
+                case 0xa9: //LDA Immediate
+                    A = memory.Read((ushort)(programCounter++));
+                    Z = (A == 0);
+                    N = (A & 0x80) != 0; //7th bit
+                    Console.WriteLine("Executing LDA Immediate: Load A");
+                    cycle = 2;
+                    break;
+                case 0x8d: //STA Absolute (STORE A)
+                    byte low = memory.Read((ushort)(programCounter++));
+                    byte high = memory.Read((ushort)(programCounter++));
+                    ushort address = (ushort)((high << 8) | low); //16 bit
+                    WriteToMemory(address, A);
+                    Console.WriteLine("Executing STA Absolute: Store A");
+                    cycle = 4;
+                    break;
+                //JUMP:
+                case 0x4C: //JMP Absolute
+                    byte jmp_low = memory.Read((ushort)(programCounter++));
+                    byte jmp_high = memory.Read((ushort)(programCounter++));
+                    ushort jmp_address = (ushort)((jmp_high << 8) | jmp_low); //16 bit
+                    programCounter = jmp_address;
 
-                switch (opcode)
-                {
-                    //ACCESS:
-                    case 0xa9: //LDA Immediate
-                        A = prg_rom[programCounter++];
-                        Z = (A == 0);
-                        N = (A & 0x80) != 0; //7th bit
-                        Console.WriteLine("Executing LDA Immediate: Load A");
-                        cycle = 2;
-                        break;
-                    case 0x8d: //STA Absolute (STORE A)
-                        byte low = prg_rom[programCounter++];
-                        byte high = prg_rom[programCounter++];
-                        ushort address = (ushort)((high << 8) | low); //16 bit
-                        WriteToMemory(address, A);
-                        Console.WriteLine("Executing STA Absolute: Store A");
-                        cycle = 4;
-                        break;
-                    //FLAGS:
-                    case 0x18: //CLC (Clear Carry)
-                        C = false;
-                        Console.WriteLine("Executing CLC: Clear Carry");
-                        cycle = 2;
-                        break;
-                    case 0x38: //SEC (Set Carry)
-                        C = true;
-                        Console.WriteLine("Executing SEC: Set Carry");
-                        cycle = 2;
-                        break;
+                    Console.WriteLine("Executing JMP Absolute");
+                    cycle = 3;
+                    break;
+                case 0x20: //JSR Absolute - Store and set
+                    byte jsr_low = memory.Read((ushort)(programCounter++));
+                    byte jsr_high = memory.Read((ushort)(programCounter++));
 
-                    case 0x58: //CLI (Clear Interrupt Disable)
-                        I = false;
-                        Console.WriteLine("Executing CLI: Clear Interrupt Disable");
-                        cycle = 2;
-                        break;
-                    case 0x78: //SEI (Set Interrupt Disable)
-                        I = true;
-                        Console.WriteLine("Executing SEI: Set Interrupt Disable");
-                        cycle = 2;
-                        break;
+                    ushort return_address = (ushort)(programCounter - 1); 
+                    PushWord(return_address);
 
-                    case 0xD8: //CLD (Clear Decimal)
-                        D = false;
-                        Console.WriteLine("Executing CLD: Clear Decimal");
-                        cycle = 2;
-                        break;
-                    case 0xF8: //SED (Set Decimal)
-                        D = true;
-                        Console.WriteLine("Executing SED: Set Decimal");
-                        cycle = 2;
-                        break;
+                    programCounter = (ushort)((jsr_high << 8) | jsr_low);
+                    Console.WriteLine("Executing JSR Absolute: Jump to subroutine");
+                    cycle = 6;
+                    break;
+                //FLAGS:
+                case 0x18: //CLC (Clear Carry)
+                    C = false;
+                    Console.WriteLine("Executing CLC: Clear Carry");
+                    cycle = 2;
+                    break;
+                case 0x38: //SEC (Set Carry)
+                    C = true;
+                    Console.WriteLine("Executing SEC: Set Carry");
+                    cycle = 2;
+                    break;
 
-                    case 0xB8: //CLV (Clear Overflow)
-                        V = false;
-                        Console.WriteLine("Executing CLV: Clear Overflow");
-                        cycle = 2;
-                        break;
-                    //Other:
-                    case 0xEA: //NOP (No Operation)
-                        Console.WriteLine("Executing NOP: No Operation");
-                        cycle = 2;
-                        break;
-                    default:
-                        Console.WriteLine("Unknown opcode: " + opcode + "(0x" + opcode.ToString("X2") + ")");
-                        break;
-                }
-                return cycle;
+                case 0x58: //CLI (Clear Interrupt Disable)
+                    I = false;
+                    Console.WriteLine("Executing CLI: Clear Interrupt Disable");
+                    cycle = 2;
+                    break;
+                case 0x78: //SEI (Set Interrupt Disable)
+                    I = true;
+                    Console.WriteLine("Executing SEI: Set Interrupt Disable");
+                    cycle = 2;
+                    break;
+
+                case 0xD8: //CLD (Clear Decimal)
+                    D = false;
+                    Console.WriteLine("Executing CLD: Clear Decimal");
+                    cycle = 2;
+                    break;
+                case 0xF8: //SED (Set Decimal)
+                    D = true;
+                    Console.WriteLine("Executing SED: Set Decimal");
+                    cycle = 2;
+                    break;
+
+                case 0xB8: //CLV (Clear Overflow)
+                    V = false;
+                    Console.WriteLine("Executing CLV: Clear Overflow");
+                    cycle = 2;
+                    break;
+                //Other:
+                case 0xEA: //NOP (No Operation)
+                    Console.WriteLine("Executing NOP: No Operation");
+                    cycle = 2;
+                    break;
+                default:
+                    Console.WriteLine("Unknown opcode: " + opcode + "(0x" + opcode.ToString("X2") + ")");
+                    break;
             }
-            else
-            {
-                Console.WriteLine("End of ROM Data!");
-                return 0;
-            }
+            return cycle;
         }
         void WriteToMemory(ushort address, byte value)
         {
@@ -136,6 +149,28 @@ namespace DeNES_ClassLibrary.Components
                     Console.WriteLine($"Write to {address} failed");
                     break;
             }
+        }
+        //STACK METHODS:
+        void PushByte(byte value)
+        {
+            memory.Write((ushort)(0x0100 + SP), value);
+            SP--;
+        }
+        void PushWord(ushort value)
+        {
+            PushByte((byte)((value >> 8) & 0xFF));
+            PushByte((byte)(value & 0xFF));
+        }
+        byte PopByte()
+        {
+            SP++;
+            return memory.Read((ushort)(0x0100 + SP));
+        }
+        ushort PopWord()
+        {
+            byte low = PopByte();
+            byte high = PopByte();
+            return (ushort)((high << 8) | low);
         }
     }
 }

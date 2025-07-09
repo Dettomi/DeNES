@@ -7,6 +7,7 @@ namespace DeNES_ClassLibrary
         ROM rom;
         CPU cpu;
         PPU ppu;
+        Memory memory;
         int cycle;
         int cpu_cycle;
         public int Cycle { get => cycle; }
@@ -15,9 +16,14 @@ namespace DeNES_ClassLibrary
         {
             rom = new ROM();
             rom.Load(romPath);
-            cpu = new CPU(rom.GetPrgRom());
+
+            memory = new Memory();
+            LoadMemory();
+
+            cpu = new CPU(memory);
             ppu = new PPU(rom.GetChrRom());
             cpu.Ppu = ppu;
+
             cycle = 0;
         }
         public void Tick()
@@ -31,6 +37,33 @@ namespace DeNES_ClassLibrary
             //apu();
             //input();
             cycle += cpu_cycle;
+        }
+        public void LoadMemory()
+        {
+            byte[] prg_rom = rom.GetPrgRom();
+            int prg_size = prg_rom.Length;
+
+            //First 16kb to $8000
+            for (int i = 0; i < 16 * 1024; i++)
+            {
+                memory.Write((ushort)(0x8000 + i), prg_rom[i]);
+            }
+            //If 16kb mirror to $c000
+            if (prg_size == 16 * 1024)
+            {
+                for (int i = 0; i < 16 * 1024; i++)
+                {
+                    memory.Write((ushort)(0xc000 + i), prg_rom[i]);
+                }
+            }
+            //If 32kb copy the second half
+            else
+            {
+                for (int i = 0; i < 16 * 1024; i++)
+                {
+                    memory.Write((ushort)(0xc000 + i), prg_rom[i+(16*1024)]);
+                }
+            }
         }
     }
 }

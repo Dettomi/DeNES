@@ -8,11 +8,19 @@ namespace DeNES_ClassLibrary.Components
 {
     public class Memory
     {
-        int[] memo;
-        public int[] memory { get => memo; set => memo = value; }
+        byte[] memory;
+
         public Memory()
         {
-            memo = new int[65536];
+            memory = new byte[65536]; //64k memory
+        }
+        public byte Read(ushort address)
+        {
+            return memory[address];
+        }
+        public void Write(ushort address, byte value)
+        {
+            memory[address] = value;
         }
     }
 }
