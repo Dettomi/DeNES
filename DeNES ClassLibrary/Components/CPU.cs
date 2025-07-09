@@ -71,6 +71,24 @@ namespace DeNES_ClassLibrary.Components
                     Console.WriteLine("Executing STA Absolute: Store A");
                     cycle = 4;
                     break;
+                case 0x81: //STA Indirect X (STORE A) ZP + X => 16 bit address
+                    byte stax_zeroPage = memory.Read((ushort)programCounter++);
+                    byte stax_low = memory.Read((byte)((stax_zeroPage + X) & 0xFF));
+                    byte stax_high = memory.Read((byte)((stax_zeroPage + X + 1) & 0xFF));
+                    ushort stax_address = (ushort)((stax_high << 8) | stax_low);
+                    WriteToMemory(stax_address, A);
+                    Console.WriteLine("Executing STA Indirect X: Store A");
+                    cycle = 6;
+                    break;
+                case 0x91: //STA Indirect Y (STORE A) ZP => 16 bit address + Y
+                    byte stay_zeroPage = memory.Read((ushort)programCounter++);
+                    byte stay_low = memory.Read(stay_zeroPage);
+                    byte stay_high = memory.Read((byte)((stay_zeroPage + 1) & 0xFF));
+                    ushort stay_address = (ushort)((stay_high << 8) | stay_low);
+                    WriteToMemory((ushort)(stay_address+Y), A);
+                    Console.WriteLine("Executing STA Indirect Y: Store A");
+                    cycle = 6;
+                    break;
                 case 0xA2: //LDX - Load X
                     X = memory.Read((ushort)(programCounter++));
                     Z = (X == 0);
@@ -352,24 +370,32 @@ namespace DeNES_ClassLibrary.Components
         }
         void WriteToMemory(ushort address, byte value)
         {
-            switch (address)
+            if (address >= 0x2000 && address <= 0x3FFF)
             {
-                case 0x2000:
-                    ppu.SETPPUCTRL(value);
-                    break;
-                case 0x2001:
-                    ppu.SETMASK(value);
-                    break;
-                case 0x2006:
-                    ppu.SETPPUADDR(value);
-                    break;
-                case 0x2007:
-                    ppu.WritePPUDATA(value);
-                    break;
-                default:
-                    Console.WriteLine($"Write to {address} failed");
-                    break;
+                // $2000–$2007 tükrözve 8 byte-onként
+                ushort reg = (ushort)(address & 0x2007);
+                switch (reg)
+                {
+                    case 0x2000: 
+                        ppu.SETPPUCTRL(value); 
+                        break;
+                    case 0x2001: 
+                        ppu.SETMASK(value); 
+                        break;
+                    case 0x2006: 
+                        ppu.SETPPUADDR(value); 
+                        break;
+                    case 0x2007: 
+                        ppu.WritePPUDATA(value); 
+                        break;
+                    default:
+                        Console.WriteLine($"PPU Unsupported register: {reg:X4} at address: {address:X4})");
+                        break;
+                }
+                return;
             }
+
+            memory.Write(address, value);
         }
         //STACK METHODS:
         void PushByte(byte value)
