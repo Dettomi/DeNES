@@ -42,7 +42,7 @@ namespace DeNES_ClassLibrary.Components
             int cycle = 0;
             byte opcode = memory.Read((ushort)(programCounter++));
             Console.WriteLine("Opcode: " + opcode+"(0x"+opcode.ToString("X2")+")");
-
+            Console.WriteLine($"PC: {programCounter:X4}");
             switch (opcode)
             {
                 //ACCESS:
@@ -86,7 +86,7 @@ namespace DeNES_ClassLibrary.Components
                     byte stay_high = memory.Read((byte)((stay_zeroPage + 1) & 0xFF));
                     ushort stay_address = (ushort)((stay_high << 8) | stay_low);
                     WriteToMemory((ushort)(stay_address+Y), A);
-                    Console.WriteLine("Executing STA Indirect Y: Store A");
+                    Console.WriteLine($"Executing STA Indirect Y: Store A {stay_address + Y:X4} = {A:X2}");
                     cycle = 6;
                     break;
                 case 0xA2: //LDX - Load X
@@ -118,6 +118,47 @@ namespace DeNES_ClassLibrary.Components
                     WriteToMemory(y_address, Y);
                     Console.WriteLine("Executing STY Absolute: Store Y");
                     cycle = 4;
+                    break;
+                //TRANSFER:
+                case 0xAA: //TAX: Transfer A to X
+                    X = A;
+                    Z = (X == 0);
+                    N = (X & 0x80) != 0; //7th bit
+                    cycle = 2;
+                    Console.WriteLine("Executing TAX: Transfer A to X");
+                    break;
+                case 0xA8: //TAY: Transfer A to Y
+                    Y = A;
+                    Z = (Y == 0);
+                    N = (Y & 0x80) != 0; //7th bit
+                    cycle = 2;
+                    Console.WriteLine("Executing TAY: Transfer A to Y");
+                    break;
+                case 0xBA: //TSX: Transfer SP to X
+                    X = SP;
+                    Z = (X == 0);
+                    N = (X & 0x80) != 0; //7th bit
+                    cycle = 2;
+                    Console.WriteLine("Executing TSX: Transfer SP to X");
+                    break;
+                case 0x8A: //TXA: Transfer X to A
+                    A = X;
+                    Z = (A == 0);
+                    N = (A & 0x80) != 0; //7th bit
+                    cycle = 2;
+                    Console.WriteLine("Executing TXA: Transfer X to A");
+                    break;
+                case 0x9A: //TXS: Transfer X to SP
+                    SP = X;
+                    cycle = 2;
+                    Console.WriteLine("Executing TXS: Transfer X to SP");
+                    break;
+                case 0x98: //TYA: Transfer Y to A
+                    A = Y;
+                    Z = (A == 0);
+                    N = (A & 0x80) != 0; //7th bit
+                    cycle = 2;
+                    Console.WriteLine("Executing TYA: Transfer Y to A");
                     break;
                 //ARITHMETIC:
                 case 0xE8: //INX Increment X
@@ -383,7 +424,7 @@ namespace DeNES_ClassLibrary.Components
                         ppu.SETMASK(value); 
                         break;
                     case 0x2006: 
-                        ppu.SETPPUADDR(value); 
+                        ppu.SETPPUADDR(value);
                         break;
                     case 0x2007: 
                         ppu.WritePPUDATA(value); 
