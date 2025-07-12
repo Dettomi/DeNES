@@ -47,66 +47,114 @@ namespace DeNES_ClassLibrary.Components
             {
                 #region ACCESS
                 #region LDA
-                case 0xAD: //LDA Absolute
-                    byte lda_low = memory.Read((ushort)(programCounter++));
-                    byte lda_high = memory.Read((ushort)(programCounter++));
-                    ushort lda_address = (ushort)((lda_high << 8) | lda_low); //16 bit
-                    A = memory.Read(lda_address);
-                    Z = (A == 0);
-                    N = (A & 0x80) != 0; //7th bit
-                    Console.WriteLine($"Executing LDA Absolute: Load A {lda_address:X4} Value A: {A}");
-                    cycle = 4;
-                    break;
-                case 0xBD: // LDA Absolute,X
-                    byte ldax_low = memory.Read((ushort)(programCounter++));
-                    byte ldax_high = memory.Read((ushort)(programCounter++));
-                    ushort ldax_baseAddr = (ushort)((ldax_high << 8) | ldax_low);
-                    ushort ldax_addr = (ushort)(ldax_baseAddr + X);
-                    A = memory.Read(ldax_addr);
-                    Z = (A == 0);
-                    N = (A & 0x80) != 0;
-                    cycle = 4; // Could be 4 or 5 cycles depending on page crossing
-                    Console.WriteLine($"Executing LDA Absolute,X from {ldax_addr:X4} = {A:X2}");
-                    break;
-                case 0xB1: // LDA (Indirect),Y
-                    {
-                        byte zp = memory.Read((ushort)(programCounter++));
-                        byte ldaiy_low = memory.Read(zp);
-                        byte ldaiy_high = memory.Read((byte)((zp + 1) & 0xFF));
-                        ushort ldaiy_addr = (ushort)((ldaiy_high << 8) | ldaiy_low);
-                        ushort finalAddr = (ushort)(ldaiy_addr + Y);
-
-                        A = memory.Read(finalAddr);
-                        Z = (A == 0);
-                        N = (A & 0x80) != 0;
-                        cycle = 5; // +1 if page crossed (optional)
-
-                        Console.WriteLine($"Executing LDA (Indirect),Y: A = {A:X2} from [{finalAddr:X4}]");
-                        break;
-                    }
-                case 0xa9: //LDA Immediate
+                case 0xA9: //LDA #Immediate (Example.: A9 64 -> A = 64)
                     A = memory.Read((ushort)(programCounter++));
-                    Z = (A == 0);
-                    N = (A & 0x80) != 0; //7th bit
-                    Console.WriteLine("Executing LDA Immediate: Load A");
+                    SetZN(A);
+
+                    Console.WriteLine($"Executing LDA #Immediate: A = {A}");
                     cycle = 2;
                     break;
-                case 0xA5: //LDA Zero page
-                    byte ldazp_address = memory.Read((ushort)(programCounter++));
-                    A = memory.Read(ldazp_address);
-                    Z = (A == 0);
-                    N = (A & 0x80) != 0;
-                    Console.WriteLine("Executing LDA Zero page: Load A");
+                case 0xA5: //LDA Zero Page (Example.: A5 $ZZ -> A = $ZZ)
+                    byte ldaZP_address = memory.Read((ushort)(programCounter++));
+
+                    A = memory.Read(ldaZP_address);
+                    SetZN(A);
+
+                    Console.WriteLine($"Executing LDA Zero Page: A = {A} [{ldaZP_address:X2}]");
                     cycle = 3;
                     break;
-                case 0xB5: // LDA Zero Page,X
-                    byte ldazpx_baseAddr = memory.Read((ushort)(programCounter++));
-                    byte ldazpx_addr = (byte)((ldazpx_baseAddr + X) & 0xFF); // Wrap around zero page
-                    A = memory.Read(ldazpx_addr);
-                    Z = (A == 0);
-                    N = (A & 0x80) != 0;
+                case 0xB5: //LDA Zero Page,X (Example.: ZP + X)
+                    byte ldaZPX_ZpAddress = memory.Read((ushort)(programCounter++));
+                    byte ldaZPX_address = (byte)((ldaZPX_ZpAddress + X) & 0xFF); // <= $FF = Zero Page
+
+                    A = memory.Read(ldaZPX_address);
+                    SetZN(A);
+
+                    Console.WriteLine($"Executing LDA Zero Page,X: A = {A:X2} [{ldaZPX_address:X2}]");
                     cycle = 4;
-                    Console.WriteLine($"Executing LDA Zero Page,X: A = {A:X2} from [{ldazpx_addr:X2}]");
+                    break;
+                case 0xAD: //LDA Absolute (Example.: AD 34 12 -> $1234
+                    byte ldaA_low = memory.Read((ushort)(programCounter++));
+                    byte ldaA_high = memory.Read((ushort)(programCounter++));
+                    ushort ldaA_address = (ushort)((ldaA_high << 8) | ldaA_low); //16 bit
+
+                    A = memory.Read(ldaA_address);
+                    SetZN(A);
+
+                    Console.WriteLine($"Executing LDA Absolute: A = {A} [{ldaA_address:X4}]");
+                    cycle = 4;
+                    break;
+                case 0xBD: //LDA Absolute,X ($1234 + X)
+                    byte ldaAX_low = memory.Read((ushort)(programCounter++));
+                    byte ldaAX_high = memory.Read((ushort)(programCounter++));
+                    ushort ldaAX_baseAddress = (ushort)((ldaAX_high << 8) | ldaAX_low);
+                    ushort ldaAX_address = (ushort)(ldaAX_baseAddress + X);
+
+                    A = memory.Read(ldaAX_address);
+                    SetZN(A);
+
+                    Console.WriteLine($"Executing LDA Absolute,X: A = {A:X2} [{ldaAX_address:X4}]");
+                    if (PageCrossed(ldaAX_baseAddress, ldaAX_address))
+                    {
+                        cycle = 5;
+                    }
+                    else
+                    {
+                        cycle = 4;
+                    }
+                    break;
+                case 0xB9: //LDA Absolute,Y
+                    byte ldaAY_low = memory.Read((ushort)(programCounter++));
+                    byte ldaAY_high = memory.Read((ushort)(programCounter++));
+                    ushort ldaAY_baseAddress = (ushort)((ldaAY_high << 8) | ldaAY_low);
+                    ushort ldaAY_address = (ushort)(ldaAY_baseAddress + Y);
+
+                    A = memory.Read(ldaAY_address);
+                    SetZN(A);
+
+                    Console.WriteLine($"Executing LDA Absolute,Y: A = {A:X2} [{ldaAY_address:X4}]");
+                    if (PageCrossed(ldaAY_baseAddress, ldaAY_address))
+                    {
+                        cycle = 5;
+                    }
+                    else
+                    {
+                        cycle = 4;
+                    }
+                    break;
+                case 0xA1: //LDA (Indirect,X) (Example.: $20 + X -> $24)
+                    byte ldaIX_zp = memory.Read((ushort)(programCounter++));
+                    byte ldaIX_baseAddress = (byte)(ldaIX_zp + X); //Wrap around 
+                    byte ldaIX_low = memory.Read((ldaIX_baseAddress));
+                    byte ldaIX_high = memory.Read((byte)(ldaIX_baseAddress + 1)); //Wrap around $FF + 1 would be wrong
+                    ushort ldaIX_address = (ushort)((ldaIX_high << 8) | ldaIX_low);
+                    
+
+                    A = memory.Read(ldaIX_address);
+                    SetZN(A);
+
+                    Console.WriteLine($"Executing LDA (Indirect,X): A = {A:X2} [{ldaIX_address:X4}]");
+                    cycle = 6;
+                    break;
+                case 0xB1: //LDA (Indirect),Y
+                    byte ldaIY_zp = memory.Read((ushort)(programCounter++));
+                    byte ldaIY_low = memory.Read(ldaIY_zp);
+                    byte ldaIY_high = memory.Read((byte)((ldaIY_zp + 1)));
+                    ushort ldaIY_baseAddress = (ushort)((ldaIY_high << 8) | ldaIY_low);
+                    ushort ldaIY_address = (ushort)(ldaIY_baseAddress + Y);
+
+                    A = memory.Read(ldaIY_address);
+                    SetZN(A);
+
+                    Console.WriteLine($"Executing LDA (Indirect),Y: A = {A:X2} [{ldaIY_address:X4}]");
+                    if (PageCrossed(ldaIY_baseAddress, ldaIY_address))
+                    {
+                        cycle = 6;
+                    }
+                    else
+                    {
+                        cycle = 5;
+                    }
                     break;
                 #endregion
                 #region STA
@@ -631,7 +679,6 @@ namespace DeNES_ClassLibrary.Components
                         Console.WriteLine($"Executing NOP (unofficial 0x14) at [{addr:X2}]");
                         break;
                     }
-                
                 case 0x48: // PHA
                     {
                         PushByte(A);
@@ -659,9 +706,9 @@ namespace DeNES_ClassLibrary.Components
                     }
                 case 0x12: // Unofficial NOP (Indirect)
                     {
-                        byte zp = memory.Read((ushort)(programCounter++));
-                        byte addr_lo = memory.Read((byte)((zp + X) & 0xFF));
-                        byte addr_hi = memory.Read((byte)((zp + X + 1) & 0xFF));
+                        byte zpn = memory.Read((ushort)(programCounter++));
+                        byte addr_lo = memory.Read((byte)((zpn + X) & 0xFF));
+                        byte addr_hi = memory.Read((byte)((zpn + X + 1) & 0xFF));
                         ushort effectiveAddr = (ushort)((addr_hi << 8) | addr_lo);
                         _ = memory.Read(effectiveAddr); // discard result
                         cycle = 5;
@@ -670,16 +717,15 @@ namespace DeNES_ClassLibrary.Components
                     }
                 case 0x24: // BIT Zero Page
                     {
-                        byte zp = memory.Read((ushort)(programCounter++));
-                        byte v = memory.Read(zp);
+                        byte zpb = memory.Read((ushort)(programCounter++));
+                        byte v = memory.Read(zpb);
                         Z = (A & v) == 0;
                         V = (v & 0x40) != 0;
                         N = (v & 0x80) != 0;
                         cycle = 3;
-                        Console.WriteLine($"Executing BIT ZeroPage: A&[{zp:X2}] -> Z={Z}, V={V}, N={N}");
+                        Console.WriteLine($"Executing BIT ZeroPage: A&[{zpb:X2}] -> Z={Z}, V={V}, N={N}");
                         break;
                     }
-
                 case 0x2C: // BIT Absolute
                     {
                         byte lo = memory.Read((ushort)(programCounter++));
@@ -700,6 +746,15 @@ namespace DeNES_ClassLibrary.Components
                     break;
                 }
             return cycle;
+        }
+        void SetZN(byte value)
+        {
+            Z = (value == 0);
+            N = (value & 0x80) != 0; //10000000
+        }
+        bool PageCrossed(ushort baseAddress, ushort address)
+        {
+            return (baseAddress & 0xFF00) != (address & 0xFF00);
         }
         void WriteToMemory(ushort address, byte value)
         {
