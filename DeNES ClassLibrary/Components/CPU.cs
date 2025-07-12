@@ -65,7 +65,7 @@ namespace DeNES_ClassLibrary.Components
                     break;
                 case 0xB5: //LDA Zero Page,X (Example.: ZP + X)
                     byte ldaZPX_ZpAddress = memory.Read((ushort)(programCounter++));
-                    byte ldaZPX_address = (byte)((ldaZPX_ZpAddress + X) & 0xFF); // <= $FF = Zero Page
+                    byte ldaZPX_address = (byte)((ldaZPX_ZpAddress + X)); // <= $FF = Zero Page
 
                     A = memory.Read(ldaZPX_address);
                     SetZN(A);
@@ -200,20 +200,60 @@ namespace DeNES_ClassLibrary.Components
                     break;
                 #endregion
                 #region LDX
-                case 0xA2: //LDX - Load X
+                case 0xA2: //LDX #Immediate - Load X
                     X = memory.Read((ushort)(programCounter++));
-                    Z = (X == 0);
-                    N = (X & 0x80) != 0; //7th bit
-                    Console.WriteLine("Executing LDX Immediate: Load X");
+                    SetZN(X);
+
+                    Console.WriteLine($"Executing LDX #Immediate: X = {X}");
                     cycle = 2;
                     break;
-                case 0xA6: // LDX Zero Page
-                    byte ldxzp_addr = memory.Read((ushort)(programCounter++));
-                    X = memory.Read(ldxzp_addr);
-                    Z = (X == 0);
-                    N = (X & 0x80) != 0;
+                case 0xA6: //LDX Zero Page
+                    byte ldxZP_address = memory.Read((ushort)(programCounter++));
+
+                    X = memory.Read(ldxZP_address);
+                    SetZN(X);
+
+                    Console.WriteLine($"Executing LDX Zero Page: X = {X:X2} [{ldxZP_address:X2}]");
                     cycle = 3;
-                    Console.WriteLine($"Executing LDX Zero Page: X = {X:X2} from [{ldxzp_addr:X2}]");
+                    break;
+                case 0xB6: //LDX Zero Page,Y
+                    byte ldxZPY_zpAddress = memory.Read((byte)(programCounter++));
+                    byte ldxZPY_address = (byte)(ldxZPY_zpAddress + Y);
+
+                    X = memory.Read(ldxZPY_address);
+                    SetZN(X);
+
+                    Console.WriteLine($"Executing LDX Zero Page,Y: X = {X:X2} [{ldxZPY_address:X2}]");
+                    cycle = 4;
+                    break;
+                case 0xAE: //LDX Absolute
+                    byte ldxA_low = memory.Read((ushort)programCounter++);
+                    byte ldxA_high = memory.Read((ushort)programCounter++);
+                    ushort ldxA_address = (ushort)((ldxA_high << 8) | ldxA_low);
+
+                    X = memory.Read(ldxA_address);
+                    SetZN(X);
+
+                    Console.WriteLine($"Executing LDX Absolute: X = {X:X2} [{ldxA_address:X4}]");
+                    break;
+                case 0xBE: //LDX Absolute,Y
+                    byte ldxAY_low = memory.Read((ushort)(programCounter++));
+                    byte ldxAY_high = memory.Read((ushort)(programCounter++));
+                    ushort ldxAY_baseAddress = (ushort)((ldxAY_high << 8) | ldxAY_low);
+                    ushort ldxAY_address = (ushort)(ldxAY_baseAddress + Y);
+
+                    X = memory.Read(ldxAY_address);
+                    SetZN(X);
+
+                    Console.WriteLine($"Executing LDX Absolute,Y: X = {X:X2} [{ldxAY_address:X4}]");
+                    if (PageCrossed(ldxAY_baseAddress, ldxAY_address))
+                    {
+                        cycle = 5;
+                    }
+                    else
+                    {
+                        cycle = 4;
+                    }
                     break;
                 #endregion
                 #region STX
