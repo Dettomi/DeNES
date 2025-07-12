@@ -13,6 +13,7 @@ namespace DeNES_ClassLibrary.Components
         public byte[] Framebuffer;
 
         byte[] nameTable = new byte[4096]; //Should be 4kb
+        byte[] oam = new byte[256];
         byte[] paletteTable = new byte[32];
 
         int ppu_tick = 0;
@@ -41,13 +42,25 @@ namespace DeNES_ClassLibrary.Components
         }
         public void Tick()
         {
+            
             ppu_tick++;
-            if(ppu_tick % 1000 == 0)
+            const int totalCyclesPerFrame = 341 * 262;
+
+            if (ppu_tick % totalCyclesPerFrame == (241 * 341 + 1))
             {
-                register_PPUSTATUS |= 0x80; //7th bit (VBlank)
+                register_PPUSTATUS |= 0x80; // VBlank on
             }
-            DrawNameTable();
-            //DrawPatternTable();
+
+            if (ppu_tick % totalCyclesPerFrame == (261 * 341 + 1))
+            {
+                register_PPUSTATUS &= 0x7F; // VBlank off
+            }
+
+            if (ppu_tick % totalCyclesPerFrame == 0)
+            {
+                DrawNameTable();
+            }
+            
         }
         public void DrawPattern8x8Tile(int position, int px, int py)
         {
@@ -140,13 +153,29 @@ namespace DeNES_ClassLibrary.Components
                 latch_PPUADDR = false;
             }
         }
-        public void WritePPUDATA(byte value) //$2007 WRITES TO PPUADDR
+        public void WritePPUDATA(byte value)
         {
-            if (register_PPUADDR >= 0x2000 && register_PPUADDR < 0x3000)
+            Console.WriteLine($"WritePPUDATA: addr=0x{register_PPUADDR:X4} → value=0x{value:X2}");
+            if ((register_PPUSTATUS & 0x80) == 0)
             {
-                nameTable[register_PPUADDR - 0x2000] = value;
+                // block writes outside VBlank
+                Console.WriteLine($"⚠ REJECTED VRAM write outside VBlank: addr={register_PPUADDR:X4}");
+                return;
             }
-            register_PPUADDR += 1;
+            if (register_PPUADDR < 0x2000)
+            {
+                // CHR-RAM write
+                patternTable[register_PPUADDR] = value;
+            }
+            else if (register_PPUADDR < 0x3000)
+            {
+                // Nametable write with vertical mirroring (2KB wraparound)
+                int vramAddress = (register_PPUADDR - 0x2000) & 0x07FF;
+                nameTable[vramAddress] = value;
+                Console.WriteLine($"name table[{vramAddress}] = {value}");
+            }
+
+            register_PPUADDR++;
         }
     }
 }

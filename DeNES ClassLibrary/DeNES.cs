@@ -32,7 +32,7 @@ namespace DeNES_ClassLibrary
         {
             Console.WriteLine("---------\nCycle: " + cycle);
             cpu_cycle = cpu.instruction();
-            for(int i = 0; i < cpu_cycle; i++)
+            for(int i = 0; i < cpu_cycle * 3; i++)
             {
                 ppu.Tick();
             }
