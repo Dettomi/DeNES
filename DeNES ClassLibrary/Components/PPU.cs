@@ -9,6 +9,7 @@ namespace DeNES_ClassLibrary.Components
 {
     public class PPU
     {
+        private CPU cpu;
         byte[] patternTable;
         public byte[] Framebuffer;
 
@@ -29,6 +30,7 @@ namespace DeNES_ClassLibrary.Components
         byte register_PPUSCROLL_Y;
         ushort register_PPUADDR;
         bool latch_PPUADDR;
+        bool latch_PPUSCROLL;
         byte register_PPUDATA;
         byte register_OAMDMA;
 
@@ -42,9 +44,12 @@ namespace DeNES_ClassLibrary.Components
         }
         public void Tick()
         {
-            
+            nameTable[10] = (byte)(ppu_tick % 255);
+            nameTable[11] = 26;
+
             ppu_tick++;
             const int totalCyclesPerFrame = 341 * 262;
+            
 
             if (ppu_tick % totalCyclesPerFrame == (241 * 341 + 1))
             {
@@ -56,11 +61,14 @@ namespace DeNES_ClassLibrary.Components
                 register_PPUSTATUS &= 0x7F; // VBlank off
             }
 
-            if (ppu_tick % totalCyclesPerFrame == 0)
+            if (ppu_tick % 100 == 0)
             {
                 DrawNameTable();
             }
-            
+        }
+        public void SetCPU(CPU cpu)
+        {
+            this.cpu = cpu;
         }
         public void DrawPattern8x8Tile(int position, int px, int py)
         {
@@ -140,11 +148,25 @@ namespace DeNES_ClassLibrary.Components
             latch_PPUADDR = false;
             return r;
         }
+        public void WritePPUSCROLL(byte value)
+        {
+            if (!latch_PPUSCROLL)
+            {
+                register_PPUSCROLL_X = value;
+                latch_PPUSCROLL = true;
+            }
+            else
+            {
+                register_PPUSCROLL_Y = value;
+                latch_PPUSCROLL = false;
+            }
+        }
         public void SETPPUADDR(byte value) //$2006 SETS VRAM ADDRESS 2 WRITE (2x8 bit)
         {
             if (!latch_PPUADDR) // High byte
             {
-                register_PPUADDR = (ushort)((value & 0x3F) << 8); //Only 14 bit address with nes, first 2 bits not used
+                //register_PPUADDR = (ushort)((value & 0x3F) << 8); //Only 14 bit address with nes, first 2 bits not used
+                register_PPUADDR = (ushort)(value << 8);
                 latch_PPUADDR = true;
             }
             else // Low byte
@@ -159,8 +181,7 @@ namespace DeNES_ClassLibrary.Components
             if ((register_PPUSTATUS & 0x80) == 0)
             {
                 // block writes outside VBlank
-                Console.WriteLine($"⚠ REJECTED VRAM write outside VBlank: addr={register_PPUADDR:X4}");
-                return;
+                Console.WriteLine($" VRAM write outside VBlank: addr={register_PPUADDR:X4}");
             }
             if (register_PPUADDR < 0x2000)
             {
@@ -169,13 +190,14 @@ namespace DeNES_ClassLibrary.Components
             }
             else if (register_PPUADDR < 0x3000)
             {
-                // Nametable write with vertical mirroring (2KB wraparound)
                 int vramAddress = (register_PPUADDR - 0x2000) & 0x07FF;
                 nameTable[vramAddress] = value;
                 Console.WriteLine($"name table[{vramAddress}] = {value}");
+                
             }
 
-            register_PPUADDR++;
+            //register_PPUADDR++;
+            register_PPUADDR += ((register_PPUCTRL & 0x04) != 0) ? (ushort)32 : (ushort)1;
         }
     }
 }

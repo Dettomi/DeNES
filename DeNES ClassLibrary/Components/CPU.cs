@@ -23,9 +23,12 @@ namespace DeNES_ClassLibrary.Components
         byte X;
         byte Y;
         byte SP; //Stack pointer
-        public CPU(Memory memo)
+
+        bool nmi_triggered = false;
+        public CPU(Memory memo, PPU ppu)
         {
             memory = memo;
+            this.ppu = ppu;
             programCounter = (ushort)(memory.Read(0xFFFC) | (memory.Read(0xFFFD) << 8)); //NES starts at this address
             SP = 0xFD; //NES default value
             C = false;
@@ -35,10 +38,11 @@ namespace DeNES_ClassLibrary.Components
             V = false;
             N = false;
         }
-        public PPU Ppu { set => ppu = value; }
+        //public PPU Ppu { set => ppu = value; }
 
         public int instruction()
         {
+            //TODO Implement ReadWord to do little endian nice
             int cycle = 0;
             byte opcode = memory.Read((ushort)(programCounter++));
             Console.WriteLine("Opcode: " + opcode+"(0x"+opcode.ToString("X2")+")");
@@ -46,7 +50,7 @@ namespace DeNES_ClassLibrary.Components
             switch (opcode)
             {
                 #region ACCESS
-                #region LDA
+                #region LDA 100%
                 case 0xA9: //LDA #Immediate (Example.: A9 64 -> A = 64)
                     A = memory.Read((ushort)(programCounter++));
                     SetZN(A);
@@ -199,7 +203,7 @@ namespace DeNES_ClassLibrary.Components
                     Console.WriteLine($"Executing STA Zero Page: A = {A:X2} → [{stazp_addr:X2}]");
                     break;
                 #endregion
-                #region LDX
+                #region LDX 100%
                 case 0xA2: //LDX #Immediate - Load X
                     X = memory.Read((ushort)(programCounter++));
                     SetZN(X);
@@ -274,13 +278,62 @@ namespace DeNES_ClassLibrary.Components
                         break;
                     }
                 #endregion
-                #region LDY
-                case 0xA0: //LDY - Load Y
+                #region LDY 100%
+                case 0xA0: //LDY #Immediate - Load Y
                     Y = memory.Read((ushort)(programCounter++));
-                    Z = (Y == 0);
-                    N = (Y & 0x80) != 0; //7th bit
-                    Console.WriteLine("Executing LDY Immediate: Load Y");
+                    SetZN(Y);
+
+                    Console.WriteLine($"Executing LDY #Immediate: Y = {Y}");
                     cycle = 2;
+                    break;
+                case 0xA4: //LDY Zero Page
+                    byte ldyZP_zpAddress = memory.Read((ushort)(programCounter++));
+
+                    Y = memory.Read((ushort)(ldyZP_zpAddress));
+                    SetZN(Y);
+
+                    Console.WriteLine($"Executing LDY Zero Page: Y = {Y} [{ldyZP_zpAddress:x2}]");
+                    cycle = 3;
+                    break;
+                case 0xB4: //LDY Zero Page,X
+                    byte ldyZPX_zpAddress = memory.Read((ushort)(programCounter++));
+                    byte ldyZPX_address = (byte)(ldyZPX_zpAddress + X); //No page crossing allowed (I think)
+
+                    Y = memory.Read((ushort)(ldyZPX_address));
+                    SetZN(Y);
+
+                    Console.WriteLine($"Executing LDY Zero Page,X: Y = {Y} [{ldyZPX_address:x2}]");
+                    cycle = 4;
+                    break;
+                case 0xAC: //LDY Absolute
+                    byte ldyA_low = memory.Read((ushort)(programCounter++));
+                    byte ldyA_high = memory.Read((ushort)(programCounter++));
+                    ushort ldyA_address = (ushort)((ldyA_high << 8) | ldyA_low); 
+
+                    Y = memory.Read(ldyA_address);
+                    SetZN(Y);
+
+                    Console.WriteLine($"Executing LDY Absolute: Y = {Y} [{ldyA_address:x4}]");
+                    cycle = 4;
+                    break;
+                case 0xBC: //LDY Absolute,X
+                    byte ldyAX_low = memory.Read((ushort)(programCounter++));
+                    byte ldyAX_high = memory.Read((ushort)(programCounter++));
+                    ushort ldyAX_baseAddress = (ushort)((ldyAX_high << 8) | ldyAX_low);
+                    ushort ldyAX_address = (ushort)(ldyAX_baseAddress + X);
+
+                    Y = memory.Read(ldyAX_address);
+                    SetZN(Y);
+
+                    Console.WriteLine($"Executing LDY Absolute,X: Y = {Y} [{ldyAX_address:x4}]");
+                    if(PageCrossed(ldyAX_baseAddress, ldyAX_address))
+                    {
+                        cycle = 5;
+                    }
+                    else
+                    {
+                        cycle = 4;
+                    }
                     break;
                 #endregion
                 #region STY
@@ -701,6 +754,33 @@ namespace DeNES_ClassLibrary.Components
                         Console.WriteLine($"Executing ASL A: A = {A:X2}, C = {C}");
                         break;
                     }
+                case 0x6C: // JMP (indirect)
+                    {
+                        // Fetch the indirect address location (pointer)
+                        byte ptrLow = memory.Read((ushort)(programCounter++));
+                        byte ptrHigh = memory.Read((ushort)(programCounter++));
+                        ushort ptr = (ushort)((ptrHigh << 8) | ptrLow);
+
+                        // Emulate 6502 bug: if the low byte is 0xFF, the high byte wraps around in the same page
+                        byte addrLow = memory.Read(ptr);
+                        byte addrHigh;
+                        if ((ptr & 0x00FF) == 0x00FF)
+                        {
+                            // Simulate page boundary bug
+                            addrHigh = memory.Read((ushort)(ptr & 0xFF00));
+                        }
+                        else
+                        {
+                            addrHigh = memory.Read((ushort)(ptr + 1));
+                        }
+
+                        ushort jmpTarget = (ushort)((addrHigh << 8) | addrLow);
+                        programCounter = jmpTarget;
+
+                        Console.WriteLine($"Executing JMP (indirect): Jump to [{jmpTarget:X4}] from pointer [{ptr:X4}]");
+                        cycle = 5;
+                        break;
+                    }
                 case 0x68: // PLA
                     {
                         A = PopByte();
@@ -779,6 +859,62 @@ namespace DeNES_ClassLibrary.Components
                         Console.WriteLine($"Executing BIT Absolute: A&[{addr:X4}] -> Z={Z}, V={V}, N={N}");
                         break;
                     }
+                case 0xEC: // CPX Absolute
+                    {
+                        byte cpx_low = memory.Read((ushort)(programCounter++));
+                        byte cpx_high = memory.Read((ushort)(programCounter++));
+                        ushort cpx_addr = (ushort)((cpx_high << 8) | cpx_low);
+                        byte cpx_value = memory.Read(cpx_addr);
+
+                        byte cpx_result = (byte)(X - cpx_value);
+                        C = X >= cpx_value;
+                        Z = cpx_result == 0;
+                        N = (cpx_result & 0x80) != 0;
+
+                        Console.WriteLine($"Executing CPX Absolute: X={X:X2}, mem[{cpx_addr:X4}]={cpx_value:X2}, C={C}, Z={Z}, N={N}");
+                        cycle = 4;
+                        break;
+                    }
+                case 0x09: // ORA #Immediate
+                    {
+                        byte ora_value = memory.Read((ushort)(programCounter++));
+                        A |= ora_value;
+                        Z = (A == 0);
+                        N = (A & 0x80) != 0;
+                        Console.WriteLine($"Executing ORA Immediate: A |= {ora_value:X2} → {A:X2}");
+                        cycle = 2;
+                        break;
+                    }
+                case 0x45: // EOR Zero Page
+                    {
+                        byte eorZP_addr = memory.Read((ushort)(programCounter++));
+                        byte eorvalue = memory.Read(eorZP_addr);
+                        A ^= eorvalue;
+                        Z = (A == 0);
+                        N = (A & 0x80) != 0;
+                        Console.WriteLine($"Executing EOR Zero Page: A ^= [{eorZP_addr:X2}] = {eorvalue:X2} → {A:X2}");
+                        cycle = 3;
+                        break;
+                    }
+                case 0x76: // ROR Zero Page,X
+                    {
+                        byte rorzp_base = memory.Read((ushort)(programCounter++));
+                        byte roraddr = (byte)(rorzp_base + X); // zero-page wraparound
+                        byte rorvalue = memory.Read(roraddr);
+
+                        bool rornewCarry = (rorvalue & 0x01) != 0;
+                        rorvalue = (byte)((rorvalue >> 1) | (C ? 0x80 : 0x00));
+                        C = rornewCarry;
+
+                        memory.Write(roraddr, rorvalue);
+                        Z = (rorvalue == 0);
+                        N = (rorvalue & 0x80) != 0;
+
+                        Console.WriteLine($"Executing ROR Zero Page,X: [{roraddr:X2}] → {rorvalue:X2}, C={C}");
+                        cycle = 6;
+                        break;
+                    }
+
                 #endregion
 
                 default:
@@ -811,6 +947,9 @@ namespace DeNES_ClassLibrary.Components
                     case 0x2001: 
                         ppu.SETMASK(value); 
                         break;
+                    case 0x2005:
+                        ppu.WritePPUSCROLL(value);
+                        break;
                     case 0x2006: 
                         ppu.SETPPUADDR(value);
                         break;
@@ -825,6 +964,20 @@ namespace DeNES_ClassLibrary.Components
             }
 
             memory.Write(address, value);
+        }
+        //RENDERING:
+        public void CheckNMI()
+        {
+            if ((ppu.READPPUSTATUS() & 0x80) != 0 && !nmi_triggered)
+            {
+                memory.Write(0x0023, 1);
+                nmi_triggered = true;
+            }
+
+            if ((ppu.READPPUSTATUS() & 0x80) == 0)
+            {
+                nmi_triggered = false;
+            }
         }
         //STACK METHODS:
         void PushByte(byte value)

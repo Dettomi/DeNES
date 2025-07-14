@@ -20,11 +20,11 @@ namespace DeNES_ClassLibrary
             memory = new Memory();
             LoadMemory();
 
-            cpu = new CPU(memory);
             ppu = new PPU(rom.GetChrRom());
-
-            cpu.Ppu = ppu;
+            cpu = new CPU(memory,ppu);
+            //cpu.Ppu = ppu;
             memory.Ppu = ppu;
+            ppu.SetCPU(cpu);
 
             cycle = 0;
         }
@@ -32,6 +32,7 @@ namespace DeNES_ClassLibrary
         {
             Console.WriteLine("---------\nCycle: " + cycle);
             cpu_cycle = cpu.instruction();
+            cpu.CheckNMI(); //To bypass loop
             for(int i = 0; i < cpu_cycle * 3; i++)
             {
                 ppu.Tick();
