@@ -161,47 +161,77 @@ namespace DeNES_ClassLibrary.Components
                     }
                     break;
                 #endregion
-                #region STA
-                case 0x8d: //STA Absolute (STORE A)
-                    byte low = memory.Read((ushort)(programCounter++));
-                    byte high = memory.Read((ushort)(programCounter++));
-                    ushort address = (ushort)((high << 8) | low); //16 bit
-                    WriteToMemory(address, A);
-                    Console.WriteLine("Executing STA Absolute: Store A");
+                #region STA 100%
+                case 0x85: //STA Zero Page (STORE A)
+                    byte staZP_address = memory.Read((ushort)(programCounter++));
+
+                    memory.Write(staZP_address, A);
+
+                    Console.WriteLine($"Executing STA Zero Page: A = {A:X2} [{staZP_address:X2}]");
+                    cycle = 3;
+                    break;
+                case 0x95: //STA Zero Page,X
+                    byte staZPX_baseAddress = memory.Read((ushort)(programCounter++));
+                    byte staZPX_address = (byte)(staZPX_baseAddress + X);
+
+                    memory.Write(staZPX_address, A);
+
+                    Console.WriteLine($"Executing STA Zero Page,X: A = {A:X2} [{staZPX_address:X2}]");
                     cycle = 4;
                     break;
-                case 0x9D: // STA Absolute,X
-                    byte staax_low = memory.Read((ushort)(programCounter++));
-                    byte staax_high = memory.Read((ushort)(programCounter++));
-                    ushort staax_addr = (ushort)(((staax_high << 8) | staax_low) + X);
-                    WriteToMemory(staax_addr, A);
+                case 0x8D: //STA Absolute
+                    byte staA_low = memory.Read((ushort)(programCounter++));
+                    byte staA_high = memory.Read((ushort)(programCounter++));
+                    ushort staA_address = (ushort)((staA_high << 8) | staA_low); //16 bit
+
+                    memory.Write(staA_address, A);
+
+                    Console.WriteLine($"Executing STA Absolute: A = {A:X2} [{staA_address:X4}]");
+                    cycle = 4;
+                    break;
+                case 0x9D: //STA Absolute,X
+                    byte staAX_low = memory.Read((ushort)(programCounter++));
+                    byte staAX_high = memory.Read((ushort)(programCounter++));
+                    ushort staAX_address = (ushort)(((staAX_high << 8) | staAX_low) + X);
+
+                    memory.Write(staAX_address, A);
+
+                    Console.WriteLine($"Executing STA Absolute,X: A = {A:X2} [{staAX_address:X4}]");
                     cycle = 5;
-                    Console.WriteLine($"Executing STA Absolute,X: A = {A:X2} → [{staax_addr:X4}]");
                     break;
-                case 0x81: //STA Indirect X (STORE A) ZP + X => 16 bit address
-                    byte stax_zeroPage = memory.Read((ushort)programCounter++);
-                    byte stax_low = memory.Read((byte)((stax_zeroPage + X) & 0xFF));
-                    byte stax_high = memory.Read((byte)((stax_zeroPage + X + 1) & 0xFF));
-                    ushort stax_address = (ushort)((stax_high << 8) | stax_low);
-                    WriteToMemory(stax_address, A);
-                    Console.WriteLine("Executing STA Indirect X: Store A");
+                case 0x99: //STA Absolute,Y
+                    byte staAY_low = memory.Read((ushort)(programCounter++));
+                    byte staAY_high = memory.Read((ushort)(programCounter++));
+                    ushort staAY_address = (ushort)(((staAY_high << 8) | staAY_low) + Y);
+
+                    memory.Write(staAY_address, A);
+
+                    Console.WriteLine($"Executing STA Absolute,Y: A = {A:X2} [{staAY_address:X4}]");
+                    cycle = 5;
+                    break;
+                case 0x81: //STA (Indirect,X) (ZP + X => 16 bit address)
+                    byte staIX_zpAddress = memory.Read((ushort)programCounter++);
+                    byte staIX_low = memory.Read((byte)((staIX_zpAddress + X) & 0xFF));
+                    byte staIX_high = memory.Read((byte)((staIX_zpAddress + X + 1) & 0xFF));
+                    ushort staIX_address = (ushort)((staIX_high << 8) | staIX_low);
+
+                    memory.Write(staIX_address, A);
+
+                    Console.WriteLine($"Executing STA (Indirect,X): A = {A:X2} [{staIX_address:X4}]");
                     cycle = 6;
                     break;
-                case 0x91: //STA Indirect Y (STORE A) ZP => 16 bit address + Y
-                    byte stay_zeroPage = memory.Read((ushort)programCounter++);
-                    byte stay_low = memory.Read(stay_zeroPage);
-                    byte stay_high = memory.Read((byte)((stay_zeroPage + 1) & 0xFF));
-                    ushort stay_address = (ushort)((stay_high << 8) | stay_low);
-                    WriteToMemory((ushort)(stay_address+Y), A);
-                    Console.WriteLine($"Executing STA Indirect Y: Store A {stay_address + Y:X4} = {A:X2}");
+                case 0x91: //STA (Indirect,Y)
+                    byte staIY_zpAddress = memory.Read((ushort)programCounter++);
+                    byte staIY_low = memory.Read(staIY_zpAddress);
+                    byte staIY_high = memory.Read((byte)((staIY_zpAddress + 1) & 0xFF));
+                    ushort staIY_address = (ushort)((staIY_high << 8) | staIY_low);
+
+                    memory.Write((ushort)(staIY_address+Y), A);
+
+                    Console.WriteLine($"Executing STA Indirect Y: Store A {staIY_address + Y:X4} = {A:X2}");
                     cycle = 6;
                     break;
-                case 0x85: // STA Zero Page
-                    byte stazp_addr = memory.Read((ushort)(programCounter++));
-                    WriteToMemory(stazp_addr, A);
-                    cycle = 3;
-                    Console.WriteLine($"Executing STA Zero Page: A = {A:X2} → [{stazp_addr:X2}]");
-                    break;
+                
                 #endregion
                 #region LDX 100%
                 case 0xA2: //LDX #Immediate - Load X
@@ -260,23 +290,34 @@ namespace DeNES_ClassLibrary.Components
                     }
                     break;
                 #endregion
-                #region STX
-                case 0x8E: //STX Absolute (STORE X)
-                    byte x_low = memory.Read((ushort)(programCounter++));
-                    byte x_high = memory.Read((ushort)(programCounter++));
-                    ushort x_address = (ushort)((x_high << 8) | x_low); //16 bit
-                    WriteToMemory(x_address, X);
-                    Console.WriteLine("Executing STX Absolute: Store X");
+                #region STX 100%
+                case 0x86: //STX Zero Page
+                    byte stxZP_address = memory.Read((ushort)(programCounter++));
+
+                    memory.Write(stxZP_address, X);
+
+                    Console.WriteLine($"Executing STX Zero Page: X = {X:X2} [{stxZP_address:X2}]");
+                    cycle = 3;
+                    break;
+                case 0x96: //STX Zero Page,Y
+                    byte stxZPY_zpAddress = memory.Read((ushort)(programCounter++));
+                    byte stxZPY_address = (byte)(stxZPY_zpAddress + Y);
+
+                    memory.Write(stxZPY_address, X);
+
+                    Console.WriteLine($"Executing STX Zero Page,Y: X = {X:X2} [{stxZPY_address:X2}]");
                     cycle = 4;
                     break;
-                case 0x86: // STX Zero Page
-                    {
-                        byte addr = memory.Read((ushort)(programCounter++));
-                        memory.Write(addr, X);
-                        cycle = 3;
-                        Console.WriteLine($"Executing STX Zero Page: X = {X:X2} → [{addr:X2}]");
-                        break;
-                    }
+                case 0x8E: //STX Absolute
+                    byte stxA_low = memory.Read((ushort)(programCounter++));
+                    byte stxA_high = memory.Read((ushort)(programCounter++));
+                    ushort stxA_address = (ushort)((stxA_high << 8) | stxA_low);
+
+                    memory.Write(stxA_address, X);
+
+                    Console.WriteLine($"Executing STX Absolute: X = {X:X2} [{stxA_address:X4}]");
+                    cycle = 4;
+                    break;
                 #endregion
                 #region LDY 100%
                 case 0xA0: //LDY #Immediate - Load Y
@@ -337,19 +378,31 @@ namespace DeNES_ClassLibrary.Components
                     break;
                 #endregion
                 #region STY
-                case 0x8C: //STY Absolute (STORE Y)
-                    byte y_low = memory.Read((ushort)(programCounter++));
-                    byte y_high = memory.Read((ushort)(programCounter++));
-                    ushort y_address = (ushort)((y_high << 8) | y_low); //16 bit
-                    WriteToMemory(y_address, Y);
-                    Console.WriteLine("Executing STY Absolute: Store Y");
+                case 0x84: //STY Zero Page (STORE Y)
+                    byte styZP_address = memory.Read((ushort)(programCounter++));
+
+                    memory.Write(styZP_address, Y);
+
+                    Console.WriteLine($"Executing STY Zero Page: Y = {Y:X2} [{styZP_address:X2}]");
+                    cycle = 3;
+                    break;
+                case 0x94: //STY Zero Page,X
+                    byte styZPX_address = memory.Read((ushort)(programCounter++));
+
+                    memory.Write((byte)(styZPX_address+X), Y);
+
+                    Console.WriteLine($"Executing STY Zero Page,X: Y = {Y:X2} [{styZPX_address:X2}]");
                     cycle = 4;
                     break;
-                case 0x84: // STY Zero Page
-                    byte styzp_address = memory.Read((ushort)(programCounter++));
-                    memory.Write(styzp_address, Y);
-                    cycle = 3;
-                    Console.WriteLine($"Executing STY Zero Page: Y = {Y:X2} → [{styzp_address:X2}]");
+                case 0x8C: //STY Absolute 
+                    byte styA_low = memory.Read((ushort)(programCounter++));
+                    byte styA__high = memory.Read((ushort)(programCounter++));
+                    ushort styA_address = (ushort)((styA__high << 8) | styA_low);
+
+                    memory.Write(styA_address, Y);
+
+                    Console.WriteLine($"Executing STY Absolute: Y = {Y:X2} [{styA_address:X4}]");
+                    cycle = 4;
                     break;
                 #endregion
                 #endregion
@@ -1012,7 +1065,158 @@ namespace DeNES_ClassLibrary.Components
                         cycle = 3;
                         break;
                     }
-                
+                case 0x40: // RTI - Return from Interrupt
+                    byte flags = PopByte();
+                    SetStatusFlags(flags);
+                    programCounter = PopWord();
+                    cycle = 6;
+                    Console.WriteLine("Executing RTI: Return from Interrupt");
+                    break;
+                case 0x05: // ORA Zero Page
+                    byte zpAddr = memory.Read((ushort)(programCounter++));
+                    byte oraZPvalue = memory.Read(zpAddr);
+                    A |= oraZPvalue;
+                    SetZN(A);
+                    Console.WriteLine($"Executing ORA Zero Page: A |= [{zpAddr:X2}] = {oraZPvalue:X2} → {A:X2}");
+                    cycle = 3;
+                    break;
+                case 0x2A: // ROL A (Accumulator)
+                    bool newCarry = (A & 0x80) != 0;
+                    A = (byte)((A << 1) | (C ? 1 : 0));
+                    C = newCarry;
+                    SetZN(A);
+                    Console.WriteLine($"Executing ROL A: A = {A:X2}, C = {C}");
+                    cycle = 2;
+                    break;
+                case 0x06: // ASL Zero Page
+                    byte aslZP_zpAddress = memory.Read((ushort)(programCounter++));
+                    byte aslZP_value = memory.Read(aslZP_zpAddress);
+
+                    C = (aslZP_value & 0x80) != 0;
+                    aslZP_value = (byte)(aslZP_value << 1);
+
+                    memory.Write(aslZP_zpAddress, aslZP_value);
+                    SetZN(aslZP_value);
+
+                    Console.WriteLine($"Executing ASL Zero Page: [{aslZP_zpAddress:X2}] ← {aslZP_value:X2}, C = {C}");
+                    cycle = 5;
+                    break;
+                case 0x19: // ORA Absolute,Y
+                    byte oraAY_low = memory.Read((ushort)(programCounter++));
+                    byte oraAY_high = memory.Read((ushort)(programCounter++));
+                    ushort oraAY_baseAddress = (ushort)((oraAY_high << 8) | oraAY_low);
+                    ushort oraAY_address = (ushort)(oraAY_baseAddress + Y);
+
+                    byte oraAY_value = memory.Read(oraAY_address);
+                    A |= oraAY_value;
+                    SetZN(A);
+
+                    Console.WriteLine($"Executing ORA Absolute,Y: A |= {oraAY_value:X2} from [{oraAY_address:X4}] → {A:X2}");
+
+                    if (PageCrossed(oraAY_baseAddress, oraAY_address))
+                        cycle = 5;
+                    else
+                        cycle = 4;
+                    break;
+                case 0x46: // LSR Zero Page
+                    byte lsrZP_zpAddress = memory.Read((ushort)(programCounter++));
+                    byte lsrZP_value = memory.Read(lsrZP_zpAddress);
+
+                    C = (lsrZP_value & 0x01) != 0;
+                    lsrZP_value = (byte)(lsrZP_value >> 1);
+
+                    memory.Write(lsrZP_zpAddress, lsrZP_value);
+                    SetZN(lsrZP_value);
+
+                    Console.WriteLine($"Executing LSR Zero Page: [{lsrZP_zpAddress:X2}] → {lsrZP_value:X2}, C={C}");
+                    cycle = 5;
+                    break;
+                case 0xE0: // CPX Immediate
+                    byte cpxI_value = memory.Read((ushort)(programCounter++));
+                    byte cpxI_result = (byte)(X - cpxI_value);
+
+                    C = X >= cpxI_value;
+                    Z = (cpxI_result == 0);
+                    N = (cpxI_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CPX Immediate: X = {X:X2}, value = {cpxI_value:X2}, C = {C}, Z = {Z}, N = {N}");
+                    cycle = 2;
+                    break;
+                case 0xC0: // CPY Immediate
+                    byte cpy_value = memory.Read((ushort)(programCounter++));
+                    byte cpy_result = (byte)(Y - cpy_value);
+
+                    C = Y >= cpy_value;
+                    Z = (cpy_result == 0);
+                    N = (cpy_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CPY Immediate: Y = {Y:X2}, value = {cpy_value:X2}, C = {C}, Z = {Z}, N = {N}");
+                    cycle = 2;
+                    break;
+                case 0x26: // ROL Zero Page
+                    byte rolZP_zpAddress = memory.Read((ushort)(programCounter++));
+                    byte rolZP_value = memory.Read(rolZP_zpAddress);
+
+                    bool rolZP_newCarry = (rolZP_value & 0x80) != 0;
+                    rolZP_value = (byte)((rolZP_value << 1) | (C ? 1 : 0));
+                    C = rolZP_newCarry;
+
+                    memory.Write(rolZP_zpAddress, rolZP_value);
+                    SetZN(rolZP_value);
+
+                    Console.WriteLine($"Executing ROL Zero Page: [{rolZP_zpAddress:X2}] → {rolZP_value:X2}, C={C}");
+                    cycle = 5;
+                    break;
+                case 0x25: // AND Zero Page
+                    byte andZP_zpAddress = memory.Read((ushort)(programCounter++));
+                    byte andZP_value = memory.Read(andZP_zpAddress);
+
+                    A &= andZP_value;
+                    SetZN(A);
+
+                    Console.WriteLine($"Executing AND Zero Page: A &= [{andZP_zpAddress:X2}] = {andZP_value:X2} → {A:X2}");
+                    cycle = 3;
+                    break;
+                case 0x55: // EOR Zero Page,X
+                    byte eorZPX_zpAddress = memory.Read((ushort)(programCounter++));
+                    byte eorZPX_address = (byte)(eorZPX_zpAddress + X);
+                    byte eorZPX_value = memory.Read(eorZPX_address);
+
+                    A ^= eorZPX_value;
+                    SetZN(A);
+
+                    Console.WriteLine($"Executing EOR Zero Page,X: A ^= [{eorZPX_address:X2}] = {eorZPX_value:X2} → {A:X2}");
+                    cycle = 4;
+                    break;
+                case 0x6D: // ADC Absolute
+                    byte adcA_low = memory.Read((ushort)(programCounter++));
+                    byte adcA_high = memory.Read((ushort)(programCounter++));
+                    ushort adcA_address = (ushort)((adcA_high << 8) | adcA_low);
+                    byte adcA_value = memory.Read(adcA_address);
+
+                    int adcA_sum = A + adcA_value + (C ? 1 : 0);
+                    C = adcA_sum > 0xFF;
+                    byte adcA_result = (byte)(adcA_sum & 0xFF);
+                    V = ((A ^ adcA_result) & (adcA_value ^ adcA_result) & 0x80) != 0;
+
+                    A = adcA_result;
+                    SetZN(A);
+
+                    Console.WriteLine($"Executing ADC Absolute: A + {adcA_value:X2} + C → {A:X2}");
+                    cycle = 4;
+                    break;
+                case 0x35: // AND Zero Page,X
+                    byte andZPX_zpAddress = memory.Read((ushort)(programCounter++));
+                    byte andZPX_address = (byte)(andZPX_zpAddress + X);
+                    byte andZPX_value = memory.Read(andZPX_address);
+
+                    A &= andZPX_value;
+                    SetZN(A);
+
+                    Console.WriteLine($"Executing AND Zero Page,X: A &= [{andZPX_address:X2}] = {andZPX_value:X2} → {A:X2}");
+                    cycle = 4;
+                    break;
+
 
                 #endregion
 
@@ -1031,45 +1235,12 @@ namespace DeNES_ClassLibrary.Components
         {
             return (baseAddress & 0xFF00) != (address & 0xFF00);
         }
-        void WriteToMemory(ushort address, byte value)
-        {
-            Console.WriteLine($"WriteToMemory called: addr=0x{address:X4} data=0x{value:X2}");
-            if (address >= 0x2000 && address <= 0x3FFF)
-            {
-                // $2000–$2007 tükrözve 8 byte-onként
-                ushort reg = (ushort)(address & 0x2007);
-                switch (reg)
-                {
-                    case 0x2000: 
-                        ppu.SETPPUCTRL(value); 
-                        break;
-                    case 0x2001: 
-                        ppu.SETMASK(value); 
-                        break;
-                    case 0x2005:
-                        ppu.WritePPUSCROLL(value);
-                        break;
-                    case 0x2006: 
-                        ppu.SETPPUADDR(value);
-                        break;
-                    case 0x2007: 
-                        ppu.WritePPUDATA(value); 
-                        break;
-                    default:
-                        Console.WriteLine($"PPU Unsupported register: {reg:X4} at address: {address:X4})");
-                        break;
-                }
-                return;
-            }
-
-            memory.Write(address, value);
-        }
         //RENDERING:
         public void CheckNMI()
         {
             if ((ppu.READPPUSTATUS() & 0x80) != 0 && !nmi_triggered)
             {
-                memory.Write(0x0023, 1);
+                TriggerNMI();
                 nmi_triggered = true;
             }
 
@@ -1077,6 +1248,36 @@ namespace DeNES_ClassLibrary.Components
             {
                 nmi_triggered = false;
             }
+        }
+        public void TriggerNMI()
+        {
+            PushWord((ushort)(programCounter));
+            PushByte(GetStatusFlags());
+            I = true;
+            programCounter = (ushort)(memory.Read(0xFFFA) | (memory.Read(0xFFFB) << 8));
+        }
+        byte GetStatusFlags()
+        {
+            byte flags = 0;
+            if (N) flags |= 0x80;  // Negative
+            if (V) flags |= 0x40;  // Overflow
+            flags |= 0x20;         // Unused bit (always set)
+                                   // Bit 4 is B (Break), should be set manually in BRK/interrupts only
+            if (D) flags |= 0x08;  // Decimal
+            if (I) flags |= 0x04;  // Interrupt Disable
+            if (Z) flags |= 0x02;  // Zero
+            if (C) flags |= 0x01;  // Carry
+            return flags;
+        }
+        void SetStatusFlags(byte flags)
+        {
+            N = (flags & 0x80) != 0;
+            V = (flags & 0x40) != 0;
+            // Bit 0x20 (unused) is ignored
+            D = (flags & 0x08) != 0;
+            I = (flags & 0x04) != 0;
+            Z = (flags & 0x02) != 0;
+            C = (flags & 0x01) != 0;
         }
         //STACK METHODS:
         void PushByte(byte value)
