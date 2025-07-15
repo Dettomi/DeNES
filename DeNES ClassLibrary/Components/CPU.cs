@@ -519,16 +519,88 @@ namespace DeNES_ClassLibrary.Components
                 #endregion
                 #region SHIFT
                 //SHIFT
-                case 0x4A: // LSR A Accumulator
-                    {
-                        C = (A & 0x01) != 0;
-                        A >>= 1;
-                        Z = (A == 0);
-                        N = false;
-                        cycle = 2;
-                        Console.WriteLine($"Executing LSR Accumulator: A = {A:X2}, C = {C}");
-                        break;
-                    }
+                case 0x4A: //LSR A Accumulator
+                    C = (A & 0x01) != 0;
+                    A >>= 1;
+                    Z = (A == 0);
+                    N = false;
+                    cycle = 2;
+                    Console.WriteLine($"Executing LSR Accumulator: A = {A:X2}, C = {C}");
+                    break;
+                #region ROR 100%
+                case 0x6A: //ROR Accumulator
+                    bool rorAC_newCarry = (A & 0x01) != 0;
+                    A = (byte)((A >> 1) | (C ? 0x80 : 0x00));
+                    C = rorAC_newCarry;
+
+                    SetZN(A);
+
+                    Console.WriteLine($"Executing ROR Accumulator: VALUE: {A:X2} C={C}");
+                    cycle = 2;
+                    break;
+                case 0x66: //ROR Zero Page
+                    byte rorZP_zpAddress = memory.Read((ushort)(programCounter++));
+                    byte rorZP_value = memory.Read(rorZP_zpAddress);
+
+                    bool rorZP_newCarry = (rorZP_value & 0x01) != 0;
+                    rorZP_value = (byte)((rorZP_value >> 1) | (C ? 0x80 : 0x00));
+                    C = rorZP_newCarry;
+
+                    memory.Write(rorZP_zpAddress, rorZP_value);
+                    SetZN(rorZP_value);
+
+                    Console.WriteLine($"Executing ROR Zero Page: VALUE: {rorZP_value:X2} [{rorZP_zpAddress:X2}] C={C}");
+                    cycle = 5;
+                    break;
+                case 0x76: //ROR Zero Page,X
+                    byte rorZPX_zpAddress = memory.Read((ushort)(programCounter++));
+                    byte rorZPX_address = (byte)(rorZPX_zpAddress + X);
+                    byte rorZPX_value = memory.Read(rorZPX_address);
+
+                    bool rorZPX_newCarry = (rorZPX_value & 0x01) != 0;
+                    rorZPX_value = (byte)((rorZPX_value >> 1) | (C ? 0x80 : 0x00));
+                    C = rorZPX_newCarry;
+
+                    memory.Write(rorZPX_address, rorZPX_value);
+                    SetZN(rorZPX_value);
+
+                    Console.WriteLine($"Executing ROR Zero Page,X: VALUE: {rorZPX_value:X2} [{rorZPX_address:X2}] C={C}");
+                    cycle = 6;
+                    break;
+                case 0x6E: //ROR Absolute
+                    byte rorA_low = memory.Read((ushort)(programCounter++));
+                    byte rorA_high = memory.Read((ushort)(programCounter++));
+                    ushort rorA_address = (ushort)((rorA_high << 8) | rorA_low);
+                    byte rorA_value = memory.Read(rorA_address);
+
+                    bool rorA_newCarry = (rorA_value & 0x01) != 0;
+                    rorA_value = (byte)((rorA_value >> 1) | (C ? 0x80 : 0x00));
+                    C = rorA_newCarry;
+
+                    memory.Write(rorA_address, rorA_value);
+                    SetZN(rorA_value);
+
+                    Console.WriteLine($"Executing ROR Absolute: VALUE: {rorA_value:X2} [{rorA_address:X4}] C={C}");
+                    cycle = 6;
+                    break;
+                case 0x7E: //ROR Absolute,X
+                    byte rorAX_low = memory.Read((ushort)(programCounter++));
+                    byte rorAX_high = memory.Read((ushort)(programCounter++));
+                    ushort rorAX_baseAddress = (ushort)((rorAX_high << 8) | rorAX_low);
+                    ushort rorAX_address = (ushort)(rorAX_baseAddress + X);
+                    byte rorAX_value = memory.Read(rorAX_address);
+
+                    bool rorAX_newCarry = (rorAX_value & 0x01) != 0;
+                    rorAX_value = (byte)((rorAX_value >> 1) | (C ? 0x80 : 0x00));
+                    C = rorAX_newCarry;
+
+                    memory.Write(rorAX_address, rorAX_value);
+                    SetZN(rorAX_value);
+
+                    Console.WriteLine($"Executing ROR Absolute,X: VALUE: {rorAX_value:X2} [{rorAX_address:X4}] C={C}");
+                    cycle = 7;
+                    break;
+                #endregion
                 #endregion
                 #region BITWISE
                 //BITWISE:
@@ -940,24 +1012,7 @@ namespace DeNES_ClassLibrary.Components
                         cycle = 3;
                         break;
                     }
-                case 0x76: // ROR Zero Page,X
-                    {
-                        byte rorzp_base = memory.Read((ushort)(programCounter++));
-                        byte roraddr = (byte)(rorzp_base + X); // zero-page wraparound
-                        byte rorvalue = memory.Read(roraddr);
-
-                        bool rornewCarry = (rorvalue & 0x01) != 0;
-                        rorvalue = (byte)((rorvalue >> 1) | (C ? 0x80 : 0x00));
-                        C = rornewCarry;
-
-                        memory.Write(roraddr, rorvalue);
-                        Z = (rorvalue == 0);
-                        N = (rorvalue & 0x80) != 0;
-
-                        Console.WriteLine($"Executing ROR Zero Page,X: [{roraddr:X2}] → {rorvalue:X2}, C={C}");
-                        cycle = 6;
-                        break;
-                    }
+                
 
                 #endregion
 
