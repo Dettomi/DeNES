@@ -411,32 +411,76 @@ namespace DeNES_ClassLibrary.Components
                     cycle = 2;
                     Console.WriteLine($"Executing ADC Immediate: A + {adc_value:X2} + C → {A:X2}");
                     break;
-                case 0xEE: // INC Absolute
-                    byte inc_low = memory.Read((ushort)(programCounter++));
-                    byte inc_high = memory.Read((ushort)(programCounter++));
-                    ushort inc_addr = (ushort)((inc_high << 8) | inc_low);
-                    byte inc_value = memory.Read(inc_addr);
-                    inc_value++;
-                    memory.Write(inc_addr, inc_value);
-                    Z = (inc_value == 0);
-                    N = (inc_value & 0x80) != 0;
-                    cycle = 6;
-                    Console.WriteLine($"Executing INC Absolute: {inc_addr:X4} = {inc_value:X2}");
+                #region INC 100%
+                case 0xE6: //INC Zero Page - Increment Memory (memory = memory + 1)
+                    byte incZP_zpAddress = memory.Read((ushort)(programCounter++));
+                    byte incZP_value = memory.Read((ushort)incZP_zpAddress);
+                    incZP_value++;
+
+                    memory.Write(incZP_zpAddress, incZP_value);
+                    SetZN(incZP_value);
+
+                    Console.WriteLine($"Executing INC Zero Page: VALUE: {incZP_value} [{incZP_zpAddress}]");
+                    cycle = 5;
                     break;
+                case 0xF6: //INC Zero Page,X
+                    byte incZPX_zpAddress = memory.Read((ushort)(programCounter++));
+                    byte incZPX_address = (byte)(incZPX_zpAddress + X);
+                    byte incZPX_value = memory.Read(incZPX_address);
+                    incZPX_value++;
+
+                    memory.Write(incZPX_address, incZPX_value);
+                    SetZN(incZPX_value);
+
+                    Console.WriteLine($"Executing INC Zero Page,X: VALUE: {incZPX_value} [{incZPX_address}]");
+                    cycle = 6;
+                    break;
+                case 0xEE: //INC Absolute
+                    byte incA_low = memory.Read((ushort)(programCounter++));
+                    byte incA_high = memory.Read((ushort)(programCounter++));
+                    ushort incA_address = (ushort)((incA_high << 8) | incA_low);
+                    byte incA_value = memory.Read(incA_address);
+                    incA_value++;
+
+                    memory.Write(incA_address, incA_value);
+                    SetZN(incA_value);
+
+                    Console.WriteLine($"Executing INC Absolute: VALUE: {incA_value:X2} [{incA_address:X2}]");
+                    cycle = 6;
+                    break;
+                case 0xFE: //INC Absolute,X
+                    byte incAX_low = memory.Read((ushort)(programCounter++));
+                    byte incAX_high = memory.Read((ushort)(programCounter++));
+                    ushort incAX_baseAddress = (ushort)((incAX_high << 8) | incAX_low);
+                    ushort incAX_address = (ushort)(incAX_baseAddress + X);
+                    byte incAX_value = memory.Read(incAX_address);
+                    incAX_value++;
+
+                    memory.Write(incAX_address, incAX_value);
+                    SetZN(incAX_value);
+
+                    Console.WriteLine($"Executing INC Absolute,X: VALUE: {incAX_value:X2} [{incAX_address:X2}]");
+                    cycle = 7;
+                    break;
+                #endregion
+                #region INX 100%
                 case 0xE8: //INX Increment X
                     X = (byte)(X+1);
-                    Z = (X == 0);
-                    N = (X & 0x80) != 0; //7th bit
-                    cycle = 2;
+                    SetZN(X);
+
                     Console.WriteLine("Executing INX: Increment X");
+                    cycle = 2;
                     break;
+                #endregion
+                #region INY 100%
                 case 0xC8: //INY Increment Y
                     Y = (byte)(Y + 1);
-                    Z = (Y == 0);
-                    N = (Y & 0x80) != 0; //7th bit
-                    cycle = 2;
+                    SetZN(Y);
+
                     Console.WriteLine("Executing INY: Increment Y");
+                    cycle = 2;
                     break;
+                #endregion
                 case 0xC6: //DEC Decrement Memory Zero Page
                     byte zeroPage_Address = memory.Read((ushort)(programCounter++));
                     byte value = memory.Read(zeroPage_Address);
