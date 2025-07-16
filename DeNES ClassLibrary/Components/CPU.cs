@@ -49,7 +49,7 @@ namespace DeNES_ClassLibrary.Components
             Console.WriteLine($"PC: {programCounter:X4}");
             switch (opcode)
             {
-                #region ACCESS
+                #region ACCESS 100%
                 #region LDA 100%
                 case 0xA9: //LDA #Immediate (Example.: A9 64 -> A = 64)
                     A = memory.Read((ushort)(programCounter++));
@@ -377,7 +377,7 @@ namespace DeNES_ClassLibrary.Components
                     }
                     break;
                 #endregion
-                #region STY
+                #region STY 100%
                 case 0x84: //STY Zero Page (STORE Y)
                     byte styZP_address = memory.Read((ushort)(programCounter++));
 
@@ -704,18 +704,61 @@ namespace DeNES_ClassLibrary.Components
                     break;
                 #endregion
                 #region COMPARE
-                //COMPARE:
-                case 0xC9: // CMP Immediate
+                #region CMP
+                case 0xC9: //CMP #Immediate
+                    byte cmpI_value = memory.Read((ushort)(programCounter++));
+                    byte cmpI_result = (byte)(A - cmpI_value);
+
+                    C = (A >= cmpI_value);
+                    Z = (cmpI_result == 0);
+                    N = (cmpI_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CMP #Immediate: A = {A:X2}, value = {cmpI_value:X2}, C = {C}, Z = {Z}, N = {N}");
+                    cycle = 2;
+                    break;
+                #endregion
+                #region CPX
+                case 0xE0: // CPX Immediate
+                    byte cpxI_value = memory.Read((ushort)(programCounter++));
+                    byte cpxI_result = (byte)(X - cpxI_value);
+
+                    C = X >= cpxI_value;
+                    Z = (cpxI_result == 0);
+                    N = (cpxI_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CPX Immediate: X = {X:X2}, value = {cpxI_value:X2}, C = {C}, Z = {Z}, N = {N}");
+                    cycle = 2;
+                    break;
+                case 0xEC: // CPX Absolute
                     {
-                        byte cmp_value = memory.Read((ushort)(programCounter++));
-                        byte cmp_result = (byte)(A - cmp_value);
-                        C = A >= cmp_value;
-                        Z = (cmp_result == 0);
-                        N = (cmp_result & 0x80) != 0;
-                        cycle = 2;
-                        Console.WriteLine($"Executing CMP Immediate: A = {A:X2}, value = {cmp_value:X2}, C = {C}, Z = {Z}, N = {N}");
+                        byte cpx_low = memory.Read((ushort)(programCounter++));
+                        byte cpx_high = memory.Read((ushort)(programCounter++));
+                        ushort cpx_addr = (ushort)((cpx_high << 8) | cpx_low);
+                        byte cpx_value = memory.Read(cpx_addr);
+
+                        byte cpx_result = (byte)(X - cpx_value);
+                        C = X >= cpx_value;
+                        Z = cpx_result == 0;
+                        N = (cpx_result & 0x80) != 0;
+
+                        Console.WriteLine($"Executing CPX Absolute: X={X:X2}, mem[{cpx_addr:X4}]={cpx_value:X2}, C={C}, Z={Z}, N={N}");
+                        cycle = 4;
                         break;
                     }
+                #endregion
+                #region CPY
+                case 0xC0: // CPY Immediate
+                    byte cpy_value = memory.Read((ushort)(programCounter++));
+                    byte cpy_result = (byte)(Y - cpy_value);
+
+                    C = Y >= cpy_value;
+                    Z = (cpy_result == 0);
+                    N = (cpy_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CPY Immediate: Y = {Y:X2}, value = {cpy_value:X2}, C = {C}, Z = {Z}, N = {N}");
+                    cycle = 2;
+                    break;
+                #endregion
                 #endregion
                 #region BRANCH
                 //BRANCH:
@@ -1065,22 +1108,7 @@ namespace DeNES_ClassLibrary.Components
                         Console.WriteLine($"Executing BIT Absolute: A&[{addr:X4}] -> Z={Z}, V={V}, N={N}");
                         break;
                     }
-                case 0xEC: // CPX Absolute
-                    {
-                        byte cpx_low = memory.Read((ushort)(programCounter++));
-                        byte cpx_high = memory.Read((ushort)(programCounter++));
-                        ushort cpx_addr = (ushort)((cpx_high << 8) | cpx_low);
-                        byte cpx_value = memory.Read(cpx_addr);
-
-                        byte cpx_result = (byte)(X - cpx_value);
-                        C = X >= cpx_value;
-                        Z = cpx_result == 0;
-                        N = (cpx_result & 0x80) != 0;
-
-                        Console.WriteLine($"Executing CPX Absolute: X={X:X2}, mem[{cpx_addr:X4}]={cpx_value:X2}, C={C}, Z={Z}, N={N}");
-                        cycle = 4;
-                        break;
-                    }
+                
                 case 0x09: // ORA #Immediate
                     {
                         byte ora_value = memory.Read((ushort)(programCounter++));
@@ -1168,28 +1196,7 @@ namespace DeNES_ClassLibrary.Components
                     Console.WriteLine($"Executing LSR Zero Page: [{lsrZP_zpAddress:X2}] → {lsrZP_value:X2}, C={C}");
                     cycle = 5;
                     break;
-                case 0xE0: // CPX Immediate
-                    byte cpxI_value = memory.Read((ushort)(programCounter++));
-                    byte cpxI_result = (byte)(X - cpxI_value);
-
-                    C = X >= cpxI_value;
-                    Z = (cpxI_result == 0);
-                    N = (cpxI_result & 0x80) != 0;
-
-                    Console.WriteLine($"Executing CPX Immediate: X = {X:X2}, value = {cpxI_value:X2}, C = {C}, Z = {Z}, N = {N}");
-                    cycle = 2;
-                    break;
-                case 0xC0: // CPY Immediate
-                    byte cpy_value = memory.Read((ushort)(programCounter++));
-                    byte cpy_result = (byte)(Y - cpy_value);
-
-                    C = Y >= cpy_value;
-                    Z = (cpy_result == 0);
-                    N = (cpy_result & 0x80) != 0;
-
-                    Console.WriteLine($"Executing CPY Immediate: Y = {Y:X2}, value = {cpy_value:X2}, C = {C}, Z = {Z}, N = {N}");
-                    cycle = 2;
-                    break;
+                
                 case 0x26: // ROL Zero Page
                     byte rolZP_zpAddress = memory.Read((ushort)(programCounter++));
                     byte rolZP_value = memory.Read(rolZP_zpAddress);
@@ -1256,7 +1263,7 @@ namespace DeNES_ClassLibrary.Components
 
 
                 #endregion
-
+                
                 default:
                     Console.WriteLine("Unknown opcode: " + opcode + "(0x" + opcode.ToString("X2") + ")");
                     break;
@@ -1275,13 +1282,15 @@ namespace DeNES_ClassLibrary.Components
         //RENDERING:
         public void CheckNMI()
         {
-            if ((ppu.READPPUSTATUS() & 0x80) != 0 && !nmi_triggered)
+            byte status = ppu.PEEKPPUSTATUS();
+            bool inVBlank = (status & 0x80) != 0;
+
+            if (inVBlank && !nmi_triggered)
             {
                 TriggerNMI();
                 nmi_triggered = true;
             }
-
-            if ((ppu.READPPUSTATUS() & 0x80) == 0)
+            else if (!inVBlank)
             {
                 nmi_triggered = false;
             }

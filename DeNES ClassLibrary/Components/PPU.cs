@@ -44,8 +44,9 @@ namespace DeNES_ClassLibrary.Components
         }
         public void Tick()
         {
-            nameTable[10] = (byte)(ppu_tick % 255);
-            nameTable[11] = 26;
+            //DrawPatternTable();
+            //nameTable[10] = (byte)(ppu_tick % 255);
+            //nameTable[11] = 26;
 
             ppu_tick++;
             const int totalCyclesPerFrame = 341 * 262;
@@ -54,6 +55,8 @@ namespace DeNES_ClassLibrary.Components
             if (ppu_tick % totalCyclesPerFrame == (241 * 341 + 1))
             {
                 register_PPUSTATUS |= 0x80; // VBlank on
+                
+
             }
 
             if (ppu_tick % totalCyclesPerFrame == (261 * 341 + 1))
@@ -61,10 +64,11 @@ namespace DeNES_ClassLibrary.Components
                 register_PPUSTATUS &= 0x7F; // VBlank off
             }
 
-            if (ppu_tick % 100 == 0)
+            if (ppu_tick % 50 == 0 && (register_PPUMASK & 0x08) != 0)
             {
                 DrawNameTable();
             }
+            
         }
         public void SetCPU(CPU cpu)
         {
@@ -72,7 +76,8 @@ namespace DeNES_ClassLibrary.Components
         }
         public void DrawPattern8x8Tile(int position, int px, int py)
         {
-            int tileAddress = position * 16; //1 tile = 16 byte
+            int patternBase = (register_PPUCTRL & 0x10) != 0 ? 0x1000 : 0x0000;
+            int tileAddress = patternBase + position * 16;
             for (int row = 0; row < 8; row++)
             {
                 byte first = patternTable[tileAddress + row];
@@ -141,8 +146,13 @@ namespace DeNES_ClassLibrary.Components
         {
             register_PPUMASK = value;
         }
+        public byte PEEKPPUSTATUS()
+        {
+            return register_PPUSTATUS;
+        }
         public byte READPPUSTATUS()
         {
+            Console.WriteLine("READPPUSTATUS: Clearing latch_PPUADDR");
             byte r = register_PPUSTATUS;
             register_PPUSTATUS &= 0x7F; // Bit 7 clear
             latch_PPUADDR = false;
@@ -165,20 +175,23 @@ namespace DeNES_ClassLibrary.Components
         {
             register_OAMADDR = value;
         }
-        public void SETPPUADDR(byte value) //$2006 SETS VRAM ADDRESS 2 WRITE (2x8 bit)
+        public void SETPPUADDR(byte value)
         {
-            if (!latch_PPUADDR) // High byte
+            Console.WriteLine($"WriteToMemory: $2006 ← {value:X2} (Latch: {latch_PPUADDR})");
+            if (!latch_PPUADDR)
             {
-                //register_PPUADDR = (ushort)((value & 0x3F) << 8); //Only 14 bit address with nes, first 2 bits not used
-                register_PPUADDR = (ushort)(value << 8);
+                register_PPUADDR = (ushort)(value << 8); // high byte
+                Console.WriteLine($"PPUADDR high set: {value:X2}");
                 latch_PPUADDR = true;
             }
-            else // Low byte
+            else
             {
-                register_PPUADDR = (ushort)(register_PPUADDR | value);
+                register_PPUADDR |= value; // low byte
+                Console.WriteLine($"PPUADDR full: {register_PPUADDR:X4}");
                 latch_PPUADDR = false;
             }
         }
+
         public void WritePPUDATA(byte value)
         {
             Console.WriteLine($"WritePPUDATA: addr=0x{register_PPUADDR:X4} → value=0x{value:X2}");
@@ -197,11 +210,16 @@ namespace DeNES_ClassLibrary.Components
                 int vramAddress = (register_PPUADDR - 0x2000) & 0x07FF;
                 nameTable[vramAddress] = value;
                 Console.WriteLine($"name table[{vramAddress}] = {value}");
-                
             }
-
-            //register_PPUADDR++;
-            register_PPUADDR += ((register_PPUCTRL & 0x04) != 0) ? (ushort)32 : (ushort)1;
+            //PPUADDR increment logic:
+            if ((register_PPUCTRL & 0x04) == 0)
+            {
+                register_PPUADDR++;
+            }
+            else
+            {
+                register_PPUADDR += 32;
+            }
         }
     }
 }
