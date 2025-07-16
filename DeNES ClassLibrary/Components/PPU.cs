@@ -161,6 +161,10 @@ namespace DeNES_ClassLibrary.Components
                 latch_PPUSCROLL = false;
             }
         }
+        public void SetOAMADDR(byte value)
+        {
+            register_OAMADDR = value;
+        }
         public void SETPPUADDR(byte value) //$2006 SETS VRAM ADDRESS 2 WRITE (2x8 bit)
         {
             if (!latch_PPUADDR) // High byte

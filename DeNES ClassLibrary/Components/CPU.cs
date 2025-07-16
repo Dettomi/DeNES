@@ -534,41 +534,78 @@ namespace DeNES_ClassLibrary.Components
                     cycle = 2;
                     break;
                 #endregion
-                case 0xC6: //DEC Decrement Memory Zero Page
-                    byte zeroPage_Address = memory.Read((ushort)(programCounter++));
-                    byte value = memory.Read(zeroPage_Address);
-                    value-=1;
-                    memory.Write(zeroPage_Address, value);
-                    Z = (value == 0);
-                    N = (value & 0x80) != 0;
+                #region DEC 100%
+                case 0xC6: //DEC Zero Page (Decrement Memory)
+                    byte decZP_address = memory.Read((ushort)(programCounter++));
+                    byte decZP_value = memory.Read(decZP_address);
+                    decZP_value--;
+
+                    memory.Write(decZP_address, decZP_value);
+                    SetZN(decZP_value);
+
+                    Console.WriteLine($"Executing DEC Zero Page address: VALUE= {decZP_value} [{decZP_address:X2}]");
                     cycle = 5;
-                    Console.WriteLine($"Executing DEC Zero Page address: {zeroPage_Address:X2}");
                     break;
-                case 0xD6: // DEC Zero Page,X
-                    byte deczpx_baseAddr = memory.Read((ushort)(programCounter++));
-                    byte deczpx_addr = (byte)((deczpx_baseAddr + X) & 0xFF); // Zero-page wraparound
-                    byte deczpx_value = memory.Read(deczpx_addr);
-                    deczpx_value--;
-                    memory.Write(deczpx_addr, deczpx_value);
-                    Z = (deczpx_value == 0);
-                    N = (deczpx_value & 0x80) != 0;
+                case 0xD6: //DEC Zero Page,X
+                    byte decZPX_zpAddress = memory.Read((ushort)(programCounter++));
+                    byte decZPX_address = (byte)(decZPX_zpAddress + X);
+                    byte decZPX_value = memory.Read(decZPX_address);
+                    decZPX_value--;
+
+                    memory.Write(decZPX_address, decZPX_value);
+                    SetZN(decZPX_value);
+
+                    Console.WriteLine($"Executing DEC Zero Page,X: VALUE= {decZPX_value:X2} [{decZPX_address:X2}]");
                     cycle = 6;
-                    Console.WriteLine($"Executing DEC Zero Page,X: [{deczpx_addr:X2}] → {deczpx_value:X2}");
                     break;
+                case 0xCE: //DEC Absolute
+                    byte decA_low = memory.Read((ushort)(programCounter++));
+                    byte decA_high = memory.Read((ushort)(programCounter++));
+                    ushort decA_address = (ushort)((decA_high << 8) | decA_low);
+                    byte decA_value = memory.Read(decA_address);
+                    decA_value--;
+
+                    memory.Write(decA_address,decA_value);
+                    SetZN(decA_value);
+
+                    Console.WriteLine($"Executing DEC Absolute: VALUE= {decA_value:X2} [{decA_address:X4}]");
+                    cycle = 6;
+                    break;
+                case 0xDE: //DEC Absolute,X
+                    byte decAX_low = memory.Read((ushort)(programCounter++));
+                    byte decAX_high = memory.Read((ushort)(programCounter++));
+                    ushort decAX_baseAddress = (ushort)((decAX_high << 8) | decAX_low);
+                    ushort decAX_address = (ushort)(decAX_baseAddress + X);
+                    byte decAX_value = memory.Read(decAX_address);
+                    decAX_value--;
+
+                    memory.Write(decAX_address, decAX_value);
+                    SetZN(decAX_value);
+
+                    Console.WriteLine($"Executing DEC Absolute,X: VALUE= {decAX_value:X2} [{decAX_address:X4}]");
+                    cycle = 7;
+                    break;
+                #endregion
+                #region DEX 100%
                 case 0xCA: //DEX Decrement X
                     X = (byte)(X - 1);
-                    Z = (X == 0);
-                    N = (X & 0x80) != 0; //7th bit
+
+                    SetZN(X);
+
+                    Console.WriteLine($"Executing DEX: X = {X}");
                     cycle = 2;
-                    Console.WriteLine("Executing DEX: Decrement X");
                     break;
+                #endregion
+                #region DEY 100%
                 case 0x88: //DEY Decrement Y
                     Y = (byte)(Y - 1);
-                    Z = (Y == 0);
-                    N = (Y & 0x80) != 0; //7th bit
+
+                    SetZN(Y);
+
+                    Console.WriteLine($"Executing DEY: Y = {Y}");
                     cycle = 2;
-                    Console.WriteLine("Executing DEY: Decrement Y");
                     break;
+                #endregion
                 #endregion
                 #region SHIFT
                 //SHIFT

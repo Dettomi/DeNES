@@ -40,6 +40,9 @@ namespace DeNES_ClassLibrary.Components
                     case 0x2001:
                         ppu.SETMASK(value);
                         break;
+                    case 0x2003:
+                        ppu.SetOAMADDR(value);
+                        break;
                     case 0x2005:
                         ppu.WritePPUSCROLL(value);
                         break;
