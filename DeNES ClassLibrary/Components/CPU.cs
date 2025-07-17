@@ -703,8 +703,8 @@ namespace DeNES_ClassLibrary.Components
                     Console.WriteLine($"Executing AND Immediate: A &= {and_value:X2} → {A:X2}");
                     break;
                 #endregion
-                #region COMPARE
-                #region CMP
+                #region COMPARE 100%
+                #region CMP 100%
                 case 0xC9: //CMP #Immediate
                     byte cmpI_value = memory.Read((ushort)(programCounter++));
                     byte cmpI_result = (byte)(A - cmpI_value);
@@ -716,9 +716,129 @@ namespace DeNES_ClassLibrary.Components
                     Console.WriteLine($"Executing CMP #Immediate: A = {A:X2}, value = {cmpI_value:X2}, C = {C}, Z = {Z}, N = {N}");
                     cycle = 2;
                     break;
+                case 0xC5: //CMP Zero Page
+                    byte cmpZP_zpAddress = (byte)memory.Read((ushort)programCounter++);
+                    byte cmpZP_value = memory.Read((cmpZP_zpAddress));
+                    byte cmpZP_result = (byte)(A - cmpZP_value);
+
+                    C = (A >= cmpZP_value);
+                    Z = (cmpZP_result == 0);
+                    N = (cmpZP_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CMP Zero Page: A = {A:X2}, value = {cmpZP_value:X2}, C = {C}, Z = {Z}, N = {N}");
+                    cycle = 3;
+                    break;
+                case 0xD5: //CMP Zero Page,X
+                    byte cmpZPX_zpAddress = (byte)memory.Read((ushort)programCounter++);
+                    cmpZPX_zpAddress = (byte)(cmpZPX_zpAddress + X);
+                    byte cmpZPX_value = memory.Read((cmpZPX_zpAddress));
+                    byte cmpZPX_result = (byte)(A - cmpZPX_value);
+
+                    C = (A >= cmpZPX_value);
+                    Z = (cmpZPX_result == 0);
+                    N = (cmpZPX_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CMP Zero Page,X: A = {A:X2}, value = {cmpZPX_value:X2}, C = {C}, Z = {Z}, N = {N}");
+                    cycle = 4;
+                    break;
+                case 0xCD: //CMP Absolute
+                    byte cmpA_low = memory.Read((ushort)(programCounter++));
+                    byte cmpA_high = memory.Read((ushort)(programCounter++));
+                    ushort cmpA_address = (ushort)((cmpA_high << 8) | cmpA_low);
+                    byte cmpA_value = memory.Read(cmpA_address);
+                    byte cmpA_result = (byte)(A - cmpA_value);
+
+                    C = (A >= cmpA_value);
+                    Z = (cmpA_result == 0);
+                    N = (cmpA_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CMP Absolute: A = {A:X2}, value = {cmpA_value:X2} [{cmpA_address:X4}], C = {C}, Z = {Z}, N = {N}");
+                    cycle = 4;
+                    break;
+                case 0xDD: //CMP Absolute,X
+                    byte cmpAX_low = memory.Read((ushort)(programCounter++));
+                    byte cmpAX_high = memory.Read((ushort)(programCounter++));
+                    ushort cmpAX_baseAddress = (ushort)((cmpAX_high << 8) | cmpAX_low);
+                    ushort cmpAX_address = (ushort)(cmpAX_baseAddress + X);
+                    byte cmpAX_value = memory.Read(cmpAX_address);
+                    byte cmpAX_result = (byte)(A - cmpAX_value);
+
+                    C = (A >= cmpAX_value);
+                    Z = (cmpAX_result == 0);
+                    N = (cmpAX_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CMP Absolute,X: A = {A:X2}, value = {cmpAX_value:X2} [{cmpAX_address:X4}], C = {C}, Z = {Z}, N = {N}");
+                    if (PageCrossed(cmpAX_baseAddress, cmpAX_address))
+                    {
+                        cycle = 5;
+                    }
+                    else { 
+                        cycle = 4; 
+                    }
+                    break;
+                case 0xD9: //CMP Absolute,Y
+                    byte cmpAY_low = memory.Read((ushort)(programCounter++));
+                    byte cmpAY_high = memory.Read((ushort)(programCounter++));
+                    ushort cmpAY_baseAddress = (ushort)((cmpAY_high << 8) | cmpAY_low);
+                    ushort cmpAY_address = (ushort)(cmpAY_baseAddress + Y);
+                    byte cmpAY_value = memory.Read(cmpAY_address);
+                    byte cmpAY_result = (byte)(A - cmpAY_value);
+
+                    C = (A >= cmpAY_value);
+                    Z = (cmpAY_result == 0);
+                    N = (cmpAY_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CMP Absolute,Y: A = {A:X2}, value = {cmpAY_value:X2} [{cmpAY_address:X4}], C = {C}, Z = {Z}, N = {N}");
+                    if (PageCrossed(cmpAY_baseAddress, cmpAY_address))
+                    {
+                        cycle = 5;
+                    }
+                    else
+                    {
+                        cycle = 4;
+                    }
+                    break;
+                case 0xC1: //CMP (Indirect,X)
+                    byte cmpIX_zpAddress = memory.Read((ushort)(programCounter++));
+                    byte cmpIX_baseAddress = (byte)(cmpIX_zpAddress + X);
+                    byte cmpIX_low = memory.Read(cmpIX_baseAddress);
+                    byte cmpIX_high = memory.Read((byte)(cmpIX_baseAddress+1));
+                    ushort cmpIX_address = (ushort)((cmpIX_high << 8) | cmpIX_low);
+                    byte cmpIX_value = memory.Read(cmpIX_address);
+                    byte cmpIX_result = (byte)(A - cmpIX_value);
+
+                    C = (A >= cmpIX_value);
+                    Z = (cmpIX_result == 0);
+                    N = (cmpIX_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CMP (Indirect,X): A = {A:X2}, value = {cmpIX_value:X2} [{cmpIX_address:X4}], C = {C}, Z = {Z}, N = {N}");
+                    cycle = 6;
+                    break;
+                case 0xD1: //CMP (Indirect),Y
+                    byte cmpIY_zpAddress = memory.Read((ushort)(programCounter++));
+                    byte cmpIY_low = memory.Read(cmpIY_zpAddress);
+                    byte cmpIY_high = memory.Read((byte)(cmpIY_zpAddress + 1));
+                    ushort cmpIY_baseAddress = (ushort)((cmpIY_high << 8) | cmpIY_low);
+                    ushort cmpIY_address = (ushort)(cmpIY_baseAddress + Y);
+                    byte cmpIY_value = memory.Read(cmpIY_address);
+                    byte cmpIY_result = (byte)(A - cmpIY_value);
+
+                    C = (A >= cmpIY_value);
+                    Z = (cmpIY_result == 0);
+                    N = (cmpIY_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CMP (Indirect),Y: A = {A:X2}, value = {cmpIY_value:X2} [{cmpIY_address:X4}], C = {C}, Z = {Z}, N = {N}");
+                    if (PageCrossed(cmpIY_baseAddress, cmpIY_address))
+                    {
+                        cycle = 6;
+                    }
+                    else { 
+                        cycle = 5; 
+                    }
+                    break;
                 #endregion
-                #region CPX
-                case 0xE0: // CPX Immediate
+                #region CPX 100%
+                case 0xE0: //CPX #Immediate
                     byte cpxI_value = memory.Read((ushort)(programCounter++));
                     byte cpxI_result = (byte)(X - cpxI_value);
 
@@ -726,37 +846,73 @@ namespace DeNES_ClassLibrary.Components
                     Z = (cpxI_result == 0);
                     N = (cpxI_result & 0x80) != 0;
 
-                    Console.WriteLine($"Executing CPX Immediate: X = {X:X2}, value = {cpxI_value:X2}, C = {C}, Z = {Z}, N = {N}");
+                    Console.WriteLine($"Executing CPX #Immediate: X = {X:X2}, VALUE = {cpxI_value:X2}, C = {C}, Z = {Z}, N = {N}");
                     cycle = 2;
                     break;
-                case 0xEC: // CPX Absolute
-                    {
-                        byte cpx_low = memory.Read((ushort)(programCounter++));
-                        byte cpx_high = memory.Read((ushort)(programCounter++));
-                        ushort cpx_addr = (ushort)((cpx_high << 8) | cpx_low);
-                        byte cpx_value = memory.Read(cpx_addr);
+                case 0xE4: //CPX Zero Page
+                    byte cpxZP_address = memory.Read((ushort)(programCounter++));
+                    byte cpxZP_value = memory.Read(cpxZP_address);
+                    byte cpxZP_result = (byte)(X - cpxZP_value);
 
-                        byte cpx_result = (byte)(X - cpx_value);
-                        C = X >= cpx_value;
-                        Z = cpx_result == 0;
-                        N = (cpx_result & 0x80) != 0;
+                    C = X >= cpxZP_value;
+                    Z = (cpxZP_result == 0);
+                    N = (cpxZP_result & 0x80) != 0;
 
-                        Console.WriteLine($"Executing CPX Absolute: X={X:X2}, mem[{cpx_addr:X4}]={cpx_value:X2}, C={C}, Z={Z}, N={N}");
-                        cycle = 4;
-                        break;
-                    }
-                #endregion
-                #region CPY
-                case 0xC0: // CPY Immediate
-                    byte cpy_value = memory.Read((ushort)(programCounter++));
-                    byte cpy_result = (byte)(Y - cpy_value);
-
-                    C = Y >= cpy_value;
-                    Z = (cpy_result == 0);
-                    N = (cpy_result & 0x80) != 0;
-
-                    Console.WriteLine($"Executing CPY Immediate: Y = {Y:X2}, value = {cpy_value:X2}, C = {C}, Z = {Z}, N = {N}");
+                    Console.WriteLine($"Executing CPX Zero Page: X = {X:X2}, VALUE = {cpxZP_value:X2} [{cpxZP_address}], C = {C}, Z = {Z}, N = {N}");
                     cycle = 2;
+                    break;
+                case 0xEC: //CPX Absolute
+                    byte cpxA_low = memory.Read((ushort)(programCounter++));
+                    byte cpxA_high = memory.Read((ushort)(programCounter++));
+                    ushort cpxA_address = (ushort)((cpxA_high << 8) | cpxA_low);
+                    byte cpxA_value = memory.Read(cpxA_address);
+                    byte cpxA_result = (byte)(X - cpxA_value);
+
+                    C = X >= cpxA_value;
+                    Z = cpxA_result == 0;
+                    N = (cpxA_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CPX Absolute: X = {X:X2}, VALUE = {cpxA_value:X2} [{cpxA_address}], C = {C}, Z = {Z}, N = {N}");
+                    cycle = 4;
+                    break;
+                #endregion
+                #region CPY 100%
+                case 0xC0: //CPY #Immediate
+                    byte cpyI_value = memory.Read((ushort)(programCounter++));
+                    byte cpyI_result = (byte)(Y - cpyI_value);
+
+                    C = Y >= cpyI_value;
+                    Z = (cpyI_result == 0);
+                    N = (cpyI_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CPY #Immediate: Y = {Y:X2}, value = {cpyI_value:X2}, C = {C}, Z = {Z}, N = {N}");
+                    cycle = 2;
+                    break;
+                case 0xC4: //CPY Zero Page
+                    byte cpyZP_address = memory.Read((ushort)(programCounter++));
+                    byte cpyZP_value = memory.Read(cpyZP_address);
+                    byte cpyZP_result = (byte)(Y - cpyZP_value);
+
+                    C = Y >= cpyZP_value;
+                    Z = (cpyZP_result == 0);
+                    N = (cpyZP_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CPY Zero Page: Y = {Y:X2}, VALUE = {cpyZP_value:X2} [{cpyZP_address}], C = {C}, Z = {Z}, N = {N}");
+                    cycle = 2;
+                    break;
+                case 0xCC: //CPY Absolute
+                    byte cpyA_low = memory.Read((ushort)(programCounter++));
+                    byte cpyA_high = memory.Read((ushort)(programCounter++));
+                    ushort cpyA_address = (ushort)((cpyA_high << 8) | cpyA_low);
+                    byte cpyA_value = memory.Read(cpyA_address);
+                    byte cpyA_result = (byte)(Y - cpyA_value);
+
+                    C = Y >= cpyA_value;
+                    Z = cpyA_result == 0;
+                    N = (cpyA_result & 0x80) != 0;
+
+                    Console.WriteLine($"Executing CPY Absolute: Y = {Y:X2}, VALUE = {cpyA_value:X2} [{cpyA_address}], C = {C}, Z = {Z}, N = {N}");
+                    cycle = 4;
                     break;
                 #endregion
                 #endregion
