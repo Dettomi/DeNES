@@ -15,7 +15,32 @@ namespace DeNES_ClassLibrary.Components
 
         byte[] nameTable = new byte[4096]; //Should be 4kb
         byte[] oam = new byte[256];
+        //PALETTA:
         byte[] paletteTable = new byte[32];
+        // NES 64-color palette (approximate RGB values)
+        static readonly byte[,] nesPalette = new byte[64, 3]
+        {
+            {124,124,124},{0,0,252},{0,0,188},{68,40,188},
+            {148,0,132},{168,0,32},{168,16,0},{136,20,0},
+            {80,48,0},{0,120,0},{0,104,0},{0,88,0},
+            {0,64,88},{0,0,0},{0,0,0},{0,0,0},
+
+            {188,188,188},{0,120,248},{0,88,248},{104,68,252},
+            {216,0,204},{228,0,88},{248,56,0},{228,92,16},
+            {172,124,0},{0,184,0},{0,168,0},{0,168,68},
+            {0,136,136},{0,0,0},{0,0,0},{0,0,0},
+
+            {248,248,248},{60,188,252},{104,136,252},{152,120,248},
+            {248,120,248},{248,88,152},{248,120,88},{252,160,68},
+            {248,184,0},{184,248,24},{88,216,84},{88,248,152},
+            {0,232,216},{120,120,120},{0,0,0},{0,0,0},
+
+            {252,252,252},{164,228,252},{184,184,248},{216,184,248},
+            {248,184,248},{248,164,192},{240,208,176},{252,224,168},
+            {248,216,120},{216,248,120},{184,248,184},{184,248,216},
+            {0,252,252},{248,216,248},{0,0,0},{0,0,0}
+        };
+
 
         int ppu_tick = 0;
         const int TileSize = 8;
@@ -44,10 +69,6 @@ namespace DeNES_ClassLibrary.Components
         }
         public void Tick()
         {
-            //DrawPatternTable();
-            //nameTable[10] = (byte)(ppu_tick % 255);
-            //nameTable[11] = 26;
-
             ppu_tick++;
             const int totalCyclesPerFrame = 341 * 262;
             
@@ -66,6 +87,10 @@ namespace DeNES_ClassLibrary.Components
 
             if (ppu_tick % 50 == 0 && (register_PPUMASK & 0x08) != 0)
             {
+                
+            }
+            if(ppu_tick % 50 == 0)
+            {
                 DrawNameTable();
             }
             
@@ -76,8 +101,17 @@ namespace DeNES_ClassLibrary.Components
         }
         public void DrawPattern8x8Tile(int position, int px, int py)
         {
+            //NON PALETTE:
             int patternBase = (register_PPUCTRL & 0x10) != 0 ? 0x1000 : 0x0000;
             int tileAddress = patternBase + position * 16;
+
+            //PALETTE:
+            int tileX = px / 8;
+            int tileY = py / 8;
+
+            int paletteIndex = GetBackgroundPaletteIndex(tileX, tileY);
+            int paletteBase = paletteIndex * 4;
+
             for (int row = 0; row < 8; row++)
             {
                 byte first = patternTable[tileAddress + row];
@@ -85,23 +119,45 @@ namespace DeNES_ClassLibrary.Components
 
                 for (int col = 0; col < 8; col++)
                 {
+                    int screenX = px + col;
+                    int screenY = py + row;
+                    int offset = (screenY * 256 + screenX) * 4;
+
                     int bit = 7 - col;
                     int bit0 = (first >> bit) & 1;
                     int bit1 = (second >> bit) & 1;
                     int color = (bit1 << 1) | bit0;
 
-                    byte intensity = (byte)(color * 85);
+                    //PALETTE:
 
-                    int screenX = px + col;
-                    int screenY = py + row;
-                    int offset = (screenY * 256 + screenX) * 4;
+                      //byte intensity = (byte)(color * 85); //Grayscale
+                    byte nesColorIndex = (color == 0) ? paletteTable[0] : paletteTable[paletteBase + color];
 
-                    Framebuffer[offset + 0] = intensity; // B
-                    Framebuffer[offset + 1] = intensity; // G
-                    Framebuffer[offset + 2] = intensity; // R
-                    Framebuffer[offset + 3] = 255;       // A
+                    byte r = nesPalette[nesColorIndex, 0];
+                    byte g = nesPalette[nesColorIndex, 1];
+                    byte b = nesPalette[nesColorIndex, 2];
+
+                    Framebuffer[offset + 0] = b; // B
+                    Framebuffer[offset + 1] = g; // G
+                    Framebuffer[offset + 2] = r; // R
+                    Framebuffer[offset + 3] = 255; // A
                 }
             }
+        }
+        private int GetBackgroundPaletteIndex(int tileX, int tileY)
+        {
+            // 16x16 pixel regions tileX/4, tileY/4
+            int attrTableBase = 0x03C0; // nameTable offseten belül
+            int attrX = tileX / 4;
+            int attrY = tileY / 4;
+            int attrIndex = attrY * 8 + attrX;
+            byte attrByte = nameTable[attrTableBase + attrIndex];
+
+            bool top = (tileY % 4) < 2;
+            bool left = (tileX % 4) < 2;
+            int shift = (top ? 0 : 4) + (left ? 0 : 2);
+
+            return (attrByte >> shift) & 0b11; // 2 bites palette index (0–3)
         }
         public void DrawPatternTable()
         {
@@ -209,7 +265,13 @@ namespace DeNES_ClassLibrary.Components
             {
                 int vramAddress = (register_PPUADDR - 0x2000) & 0x07FF;
                 nameTable[vramAddress] = value;
-                Console.WriteLine($"name table[{vramAddress}] = {value}");
+                Console.WriteLine($"nameTable[{vramAddress}] = {value}");
+            }
+            else if (register_PPUADDR >= 0x3F00 && register_PPUADDR <= 0x3F1F)
+            {
+                int paletteIndex = (register_PPUADDR - 0x3F00) % 32;
+                paletteTable[paletteIndex] = value;
+                Console.WriteLine($"paletteTable[{paletteIndex}] = {value:X2}");
             }
             //PPUADDR increment logic:
             if ((register_PPUCTRL & 0x04) == 0)
